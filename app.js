@@ -538,6 +538,160 @@ function drawTape(center){
   sweep.classList.remove('animate'); void sweep.offsetWidth; sweep.classList.add('animate');
 }
 
+  // ===== Tape swipe selection =====
+  const TAPE_SWIPE_VIEW_IN = 2.5;
+  const TAPE_SWIPE_MAX_IN = 5280 * 12;
+  const TAPE_SWIPE_START_PX = 6;
+  const TAPE_SWIPE_FLING_MIN_V = 0.4;
+  const TAPE_SWIPE_STOP_MIN_V = 0.05;
+  const TAPE_SWIPE_DECAY = 0.92;
+
+  function canTapeSwipe(){
+    if (measure.active) return false;
+    if (currentEntry) return false;
+    if (!tokens.length) return true;
+    return isOp(tokens.at(-1));
+  }
+
+  function clampTapeValue(value){
+    return clamp(value, 0, TAPE_SWIPE_MAX_IN);
+  }
+
+  function snapTapeValue(value){
+    return Math.round(value * 16) / 16;
+  }
+
+  function initTapeSwipe(){
+    if (!tape) return;
+
+    let active = false;
+    let pointerId = null;
+    let startX = 0;
+    let startCenter = 0;
+    let lastX = 0;
+    let lastT = 0;
+    let velocity = 0;
+    let center = 0;
+    let moved = false;
+    let rafId = 0;
+    let flingId = 0;
+
+    tape.style.touchAction = 'none';
+
+    const scheduleDraw = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        drawTape(center);
+      });
+    };
+
+    const stopFling = () => {
+      if (!flingId) return;
+      cancelAnimationFrame(flingId);
+      flingId = 0;
+    };
+
+    const commitValue = () => {
+      if (!Number.isFinite(center)) return;
+      const snapped = clampTapeValue(snapTapeValue(center));
+      center = snapped;
+      insertValueIntoEntry(snapped);
+    };
+
+    const getPpi = () => {
+      const rect = tape.getBoundingClientRect();
+      return rect.width ? rect.width / TAPE_SWIPE_VIEW_IN : 0;
+    };
+
+    const onStart = (e) => {
+      if (e.button != null && e.button !== 0) return;
+      if (!canTapeSwipe()) return;
+
+      stopFling();
+      active = true;
+      moved = false;
+      pointerId = e.pointerId;
+      startX = lastX = e.clientX;
+      lastT = performance.now();
+      velocity = 0;
+      startCenter = (!tokens.length && !currentEntry)
+        ? 0
+        : (Number.isFinite(lastGood.value) ? lastGood.value : 0);
+      center = clampTapeValue(startCenter);
+
+      tape.setPointerCapture?.(pointerId);
+    };
+
+    const onMove = (e) => {
+      if (!active || e.pointerId !== pointerId) return;
+      const now = performance.now();
+      const dx = e.clientX - startX;
+      if (!moved && Math.abs(dx) < TAPE_SWIPE_START_PX) return;
+      moved = true;
+
+      const ppi = getPpi();
+      if (!ppi) return;
+
+      center = clampTapeValue(startCenter - dx / ppi);
+
+      const dt = now - lastT;
+      if (dt > 0) {
+        const deltaX = e.clientX - lastX;
+        const instVel = -((deltaX / dt) / ppi) * 1000;
+        velocity = velocity ? (velocity * 0.7 + instVel * 0.3) : instVel;
+      }
+
+      lastX = e.clientX;
+      lastT = now;
+      scheduleDraw();
+      e.preventDefault();
+    };
+
+    const finish = () => {
+      if (!active) return;
+      active = false;
+      if (pointerId != null) tape.releasePointerCapture?.(pointerId);
+      pointerId = null;
+
+      if (!moved) return;
+
+      if (Math.abs(velocity) > TAPE_SWIPE_FLING_MIN_V) {
+        let lastTime = performance.now();
+        const step = (now) => {
+          const dt = (now - lastTime) / 1000;
+          lastTime = now;
+
+          center = clampTapeValue(center + velocity * dt);
+          const decay = Math.pow(TAPE_SWIPE_DECAY, dt * 60);
+          if ((center <= 0 && velocity < 0) || (center >= TAPE_SWIPE_MAX_IN && velocity > 0)) {
+            velocity = 0;
+          } else {
+            velocity *= decay;
+          }
+
+          drawTape(center);
+
+          if (Math.abs(velocity) <= TAPE_SWIPE_STOP_MIN_V) {
+            flingId = 0;
+            commitValue();
+            return;
+          }
+          flingId = requestAnimationFrame(step);
+        };
+        flingId = requestAnimationFrame(step);
+      } else {
+        commitValue();
+      }
+    };
+
+    tape.addEventListener('pointerdown', onStart, { passive: true });
+    tape.addEventListener('pointermove', onMove, { passive: false });
+    tape.addEventListener('pointerup', finish, { passive: true });
+    tape.addEventListener('pointercancel', finish, { passive: true });
+    tape.addEventListener('lostpointercapture', finish, { passive: true });
+  }
+
   // ===== Memory helpers =====
 function loadMemory(){
   try{
@@ -2179,6 +2333,7 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
   initPortraitLock();
   computeTile();
   initTape();
+  initTapeSwipe();
   loadMemory();
   loadSavedEq();
   loadMemorySets();
