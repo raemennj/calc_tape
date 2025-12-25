@@ -12,6 +12,14 @@
   /* Keep last good number handy for redraws during layout changes */
   let lastGood = { value: 0, fraction: '', decimal: '' };
 
+  let tapeMode = 'result';
+  let tapeEntryCenter = 0;
+  let tapeEntryTouched = false;
+
+  const TAPE_MAX_IN = 5280 * 12;
+  function clampTapeValue(value){ return clamp(value, 0, TAPE_MAX_IN); }
+  function snapTapeValue(value){ return Math.round(value * 16) / 16; }
+
   /* ====== Uniform tile/gap solver ====== */
   const MIN_TAP = 44;
   const MIN_GAP = 6, MAX_GAP = 12;
@@ -73,7 +81,7 @@
     setVar('--tile', tile + 'px');
 
     // Redraw tape (and recenter the red line) whenever layout changes
-    drawTape(lastGood.value || 0);
+    updateTapeDisplay(lastGood.value);
   }
 
   const ro = new ResizeObserver(computeTile);
@@ -107,6 +115,39 @@
   const inputLine = document.getElementById('inputLine');
   const fractionLine = document.getElementById('fractionLine');
   const decimalLine = document.getElementById('decimalLine');
+
+  function getTapeDisplayCenter(){
+    const base = (tapeMode === 'entry') ? tapeEntryCenter : lastGood.value;
+    return Number.isFinite(base) ? clampTapeValue(base) : 0;
+  }
+
+  function updateTapeModeHint(){
+    if (!tape) return;
+    tape.dataset.mode = tapeMode;
+    const label = (tapeMode === 'result') ? 'Result' : 'Entry';
+    tape.setAttribute('title', `Tape: ${label} (tap to toggle)`);
+  }
+
+  function updateTapeDisplay(resultCenter){
+    const center = (tapeMode === 'result')
+      ? (Number.isFinite(resultCenter) ? resultCenter : lastGood.value)
+      : tapeEntryCenter;
+    drawTape(Number.isFinite(center) ? clampTapeValue(center) : 0);
+    updateTapeModeHint();
+  }
+
+  function setTapeMode(mode){
+    if (mode === tapeMode) return;
+    if (mode === 'entry' && !tapeEntryTouched){
+      tapeEntryCenter = clampTapeValue(Number.isFinite(lastGood.value) ? lastGood.value : 0);
+    }
+    tapeMode = mode;
+    updateTapeDisplay(lastGood.value);
+  }
+
+  function toggleTapeMode(){
+    setTapeMode(tapeMode === 'result' ? 'entry' : 'result');
+  }
 
 /* ---- Render helper for arrow span (robust) ---- */
 function renderOutputs(leftFractionText, rightDecimalText){
@@ -465,18 +506,18 @@ function parseMixedInchString(s){
       const out = formatResult(num);
       lastGood = { value: num, fraction: out.fraction, decimal: out.decimal };
       renderOutputs(out.fraction, out.decimal);
-      drawTape(num);
+      updateTapeDisplay(num);
     } catch {
       if (measure.active && !left){
         const m = measureTotal();
         const out = formatResult(m);
         renderOutputs(out.fraction, out.decimal);
-        drawTape(m);
+        updateTapeDisplay(m);
         return;
       }
      if (lastGood.decimal){
   renderOutputs(lastGood.fraction, lastGood.decimal);
-  drawTape(lastGood.value);
+  updateTapeDisplay(lastGood.value);
 } else {
   renderOutputs('', '');
 }
@@ -486,7 +527,7 @@ function parseMixedInchString(s){
 
   // ===== Tape rendering + pixel-perfect center line =====
 function drawTape(center){
-  if (center<0) center=0;
+  center = clampTapeValue(center);
 
   // Clear old ticks/labels
   [...tape.querySelectorAll('.tick,.tick-label')].forEach(n=>n.remove());
@@ -540,25 +581,13 @@ function drawTape(center){
 
   // ===== Tape swipe selection =====
   const TAPE_SWIPE_VIEW_IN = 2.5;
-  const TAPE_SWIPE_MAX_IN = 5280 * 12;
   const TAPE_SWIPE_START_PX = 6;
   const TAPE_SWIPE_FLING_MIN_V = 0.4;
   const TAPE_SWIPE_STOP_MIN_V = 0.05;
   const TAPE_SWIPE_DECAY = 0.92;
 
   function canTapeSwipe(){
-    if (measure.active) return false;
-    if (currentEntry) return false;
-    if (!tokens.length) return true;
-    return isOp(tokens.at(-1));
-  }
-
-  function clampTapeValue(value){
-    return clamp(value, 0, TAPE_SWIPE_MAX_IN);
-  }
-
-  function snapTapeValue(value){
-    return Math.round(value * 16) / 16;
+    return true;
   }
 
   function initTapeSwipe(){
@@ -568,6 +597,7 @@ function drawTape(center){
     let pointerId = null;
     let startX = 0;
     let startCenter = 0;
+    let startDisplayCenter = 0;
     let lastX = 0;
     let lastT = 0;
     let velocity = 0;
@@ -596,6 +626,8 @@ function drawTape(center){
       if (!Number.isFinite(center)) return;
       const snapped = clampTapeValue(snapTapeValue(center));
       center = snapped;
+      tapeEntryCenter = snapped;
+      tapeEntryTouched = true;
       insertValueIntoEntry(snapped);
     };
 
@@ -615,10 +647,9 @@ function drawTape(center){
       startX = lastX = e.clientX;
       lastT = performance.now();
       velocity = 0;
-      startCenter = (!tokens.length && !currentEntry)
-        ? 0
-        : (Number.isFinite(lastGood.value) ? lastGood.value : 0);
-      center = clampTapeValue(startCenter);
+      startDisplayCenter = getTapeDisplayCenter();
+      startCenter = clampTapeValue(startDisplayCenter);
+      center = startCenter;
 
       tape.setPointerCapture?.(pointerId);
     };
@@ -628,12 +659,21 @@ function drawTape(center){
       const now = performance.now();
       const dx = e.clientX - startX;
       if (!moved && Math.abs(dx) < TAPE_SWIPE_START_PX) return;
-      moved = true;
+      if (!moved){
+        moved = true;
+        if (tapeMode !== 'entry'){
+          tapeMode = 'entry';
+          updateTapeModeHint();
+        }
+        tapeEntryCenter = startCenter;
+        tapeEntryTouched = true;
+      }
 
       const ppi = getPpi();
       if (!ppi) return;
 
       center = clampTapeValue(startCenter - dx / ppi);
+      tapeEntryCenter = center;
 
       const dt = now - lastT;
       if (dt > 0) {
@@ -654,7 +694,10 @@ function drawTape(center){
       if (pointerId != null) tape.releasePointerCapture?.(pointerId);
       pointerId = null;
 
-      if (!moved) return;
+      if (!moved){
+        toggleTapeMode();
+        return;
+      }
 
       if (Math.abs(velocity) > TAPE_SWIPE_FLING_MIN_V) {
         let lastTime = performance.now();
@@ -664,7 +707,8 @@ function drawTape(center){
 
           center = clampTapeValue(center + velocity * dt);
           const decay = Math.pow(TAPE_SWIPE_DECAY, dt * 60);
-          if ((center <= 0 && velocity < 0) || (center >= TAPE_SWIPE_MAX_IN && velocity > 0)) {
+          tapeEntryCenter = center;
+          if ((center <= 0 && velocity < 0) || (center >= TAPE_MAX_IN && velocity > 0)) {
             velocity = 0;
           } else {
             velocity *= decay;
@@ -1033,7 +1077,7 @@ function loadSavedEquation(item){
   renderOutputs(frac, dec);
 
   lastGood = { value:resolvedValue, fraction:frac, decimal:dec };
-  drawTape(resolvedValue);
+  updateTapeDisplay(resolvedValue);
   showToast('Equation loaded');
   if (typeof window._cmClose === 'function'){
     window._cmClose();
@@ -1459,7 +1503,9 @@ memSetsListEl?.addEventListener('blur', (e) => {
     inputLine.textContent='';
 renderOutputs('', '');
 
-    drawTape(0);
+    tapeEntryCenter = 0;
+    tapeEntryTouched = true;
+    updateTapeDisplay(0);
     setRepeatEnabled(false);
   });
 
@@ -2684,7 +2730,7 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
   function initTape(){
     const r=tape.getBoundingClientRect();
     if(!r.width){ requestAnimationFrame(initTape); return; }
-    drawTape(0);
+    updateTapeDisplay(0);
   }
 
   // Block selection/callout on buttons only (not outputs/history)
