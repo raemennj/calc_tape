@@ -192,6 +192,7 @@ function renderOutputs(leftFractionText, rightDecimalText){
   let tokens = [];                 // raw tokens for math
   let tokenDisplays = [];          // pretty display for measurement tokens
   let currentEntry = '';           // normal numeric entry (non-measure)
+  let currentEntryDisplay = '';    // optional display override (e.g., tape snap)
   let tmr = null;
 
   // Feet-builder state (active until finalized by an operator)
@@ -236,6 +237,7 @@ function replaceHistoryWith(valueInInches){
   tokens = [];
   tokenDisplays = [];
   currentEntry = '';
+  currentEntryDisplay = '';
   measure = { active:false, feet:0, inches:0, inEntry:'' };
 
   // Store one number token; display string matches the current displayMode
@@ -397,7 +399,7 @@ function parseMixedInchString(s){
       arr.push({type:'num', value: String(measureTotal()), display: measureDisplay()});
     } else if (currentEntry){
   // Show exactly what the user typed (no decimal → fraction conversion here)
-  arr.push({ type:'num', value: currentEntry, display: currentEntry });
+  arr.push({ type:'num', value: currentEntry, display: currentEntryDisplay || currentEntry });
 }
 
 
@@ -628,7 +630,10 @@ function drawTape(center){
       center = snapped;
       tapeEntryCenter = snapped;
       tapeEntryTouched = true;
-      insertValueIntoEntry(snapped);
+      insertValueIntoEntry(snapped, {
+        replaceIfNoOp: true,
+        display: formatResultInchOnlyLabel(snapped)
+      });
     };
 
     const getPpi = () => {
@@ -1060,6 +1065,7 @@ function loadSavedEquation(item){
     : [];
 
   currentEntry = '';
+  currentEntryDisplay = '';
   measure = { active:false, feet:0, inches:0, inEntry:'' };
 
   if (tokenDisplays.length < tokens.length){
@@ -1339,6 +1345,8 @@ memSetsListEl?.addEventListener('click', (e) => {
     const slotIdx = Number(slotBtn.dataset.slotIndex);
     const set = memorySets.find(s => s.id === row?.dataset.groupId);
     const value = set?.values?.[slotIdx];
+    setTapeMode('result');
+    currentEntryDisplay = '';
     insertValueIntoEntry(value);
   }
 });
@@ -1365,6 +1373,8 @@ memSetsListEl?.addEventListener('blur', (e) => {
   // ===== Number / decimal entry =====
   document.querySelectorAll('.btn[data-val]').forEach(b=>b.addEventListener('click',()=>{
     const val = b.dataset.val;
+    setTapeMode('result');
+    currentEntryDisplay = '';
     if (measure.active){
 
       measure.inEntry += val;
@@ -1375,6 +1385,8 @@ memSetsListEl?.addEventListener('blur', (e) => {
   }));
 
   document.querySelector('.btn.dec[data-val="."]').addEventListener('click',()=>{
+    setTapeMode('result');
+    currentEntryDisplay = '';
     if (measure.active){
       if (!measure.inEntry.includes('.')) measure.inEntry = measure.inEntry ? (measure.inEntry + '.') : '0.';
       updateInput(); qEval();
@@ -1388,12 +1400,11 @@ memSetsListEl?.addEventListener('blur', (e) => {
   // ===== Operators =====
   document.querySelectorAll('.btn.operator[data-op]').forEach(b=>b.addEventListener('click',()=>{
     const op = b.dataset.op;
+    setTapeMode('result');
     if (measure.active) finalizeMeasureToken();
 
     if (currentEntry){
-      tokens.push(currentEntry);
-      tokenDisplays.push(undefined);
-      currentEntry='';
+      pushCurrentEntry();
     }
     if (!tokens.length && op !== '-') { updateInput(); qEval(); return; }
 
@@ -1412,6 +1423,7 @@ memSetsListEl?.addEventListener('blur', (e) => {
   let backHoldTriggered = false;
 
   function backspaceChar(){
+    setTapeMode('result');
     if (measure.active){
       if (measure.inEntry){
         measure.inEntry = measure.inEntry.slice(0,-1);
@@ -1424,11 +1436,13 @@ memSetsListEl?.addEventListener('blur', (e) => {
     }
     if (currentEntry && isTypedFraction(currentEntry)){
       currentEntry = '';
+      currentEntryDisplay = '';
       updateInput(); evaluate(); return;
     }
 
     if (currentEntry){
       currentEntry = currentEntry.slice(0,-1);
+      currentEntryDisplay = '';
     } else if (tokens.length){
       let last = tokens.at(-1);
       if (isOp(last)) {
@@ -1450,6 +1464,7 @@ memSetsListEl?.addEventListener('blur', (e) => {
     }
     if (currentEntry){
       currentEntry = '';
+      currentEntryDisplay = '';
       if (tokens.length && isOp(tokens.at(-1))) { tokens.pop(); tokenDisplays.pop(); }
       updateInput(); evaluate(); return;
     }
@@ -1499,7 +1514,8 @@ memSetsListEl?.addEventListener('blur', (e) => {
 
   // ===== Clear =====
   document.querySelector('.btn.clear[data-action="clear"]').addEventListener('click',()=>{
-    tokens=[]; tokenDisplays=[]; currentEntry=''; measure = { active:false, feet:0, inches:0, inEntry:'' };
+    setTapeMode('result');
+    tokens=[]; tokenDisplays=[]; currentEntry=''; currentEntryDisplay=''; measure = { active:false, feet:0, inches:0, inEntry:'' };
     inputLine.textContent='';
 renderOutputs('', '');
 
@@ -1532,6 +1548,8 @@ function lastNumericIndex(){
 // --- click → commit feet (whole/decimal/fraction or convert last mixed token) ---
 let suppressFeetClick = false;
 feetBtn.addEventListener('click', (e) => {
+  setTapeMode('result');
+  currentEntryDisplay = '';
   if (suppressFeetClick) {        // swallow the click that follows a long-press
     suppressFeetClick = false;
     e.preventDefault();
@@ -1657,14 +1675,27 @@ feetBtn.addEventListener('keyup', (e) => {
 
 
 // ===== Memory buttons =====
-function insertValueIntoEntry(value){
+function pushCurrentEntry(){
+  if (!currentEntry) return;
+  tokens.push(currentEntry);
+  tokenDisplays.push(currentEntryDisplay ? currentEntryDisplay : undefined);
+  currentEntry = '';
+  currentEntryDisplay = '';
+}
+
+function insertValueIntoEntry(value, options = {}){
   if (!Number.isFinite(value)) return;
   if (measure.active) finalizeMeasureToken();
+  const replaceIfNoOp = options.replaceIfNoOp === true;
+  const displayOverride = options.display ? String(options.display) : '';
   if (currentEntry){
-    tokens.push(currentEntry);
-    tokenDisplays.push(undefined);
+    const shouldReplace = replaceIfNoOp && tokens.length === 0;
+    if (!shouldReplace){
+      pushCurrentEntry();
+    }
   }
   currentEntry = String(value);
+  currentEntryDisplay = displayOverride;
   updateInput();
   evaluate();
 }
@@ -1695,6 +1726,8 @@ function storeToMem(btn){
 }
 
 function recallFromMem(btn){
+  setTapeMode('result');
+  currentEntryDisplay = '';
   const i = +btn.dataset.mem;
   const v = memorySlots[i];
 
@@ -1802,6 +1835,7 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
 
   // ===== Fractions input handling =====
   document.querySelectorAll('.btn.frac').forEach(b=>b.addEventListener('click',()=>{
+    setTapeMode('result');
     const f=b.dataset.frac;
     const [n,d]=f.split('/').map(Number);
     const fVal = n/d;
@@ -1818,7 +1852,7 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
       return;
     }
 
-    if (!currentEntry) {
+  if (!currentEntry) {
       currentEntry = f;
 } else if (isWhole(currentEntry)) {
   const whole = parseInt(currentEntry, 10);
@@ -1827,9 +1861,10 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
   // History should reflect the user's intent explicitly: "1 1/2"
   tokenDisplays.push(`${whole} ${f}`);
   currentEntry = '';
+  currentEntryDisplay = '';
 }
  else {
-      tokens.push(currentEntry); tokenDisplays.push(undefined);
+      pushCurrentEntry();
       tokens.push('+');         tokenDisplays.push(undefined);
       currentEntry=f;
     }
@@ -2693,9 +2728,7 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
       finalizeMeasureToken();
     }
     if (currentEntry && tokens.length && isOp(tokens.at(-1))){
-      tokens.push(currentEntry);
-      tokenDisplays.push(undefined);
-      currentEntry = '';
+      pushCurrentEntry();
     }
   }
 

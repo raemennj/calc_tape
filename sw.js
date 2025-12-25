@@ -1,6 +1,6 @@
 // sw.js  — place this file next to your HTML (e.g., /projects/sw.js)
 const CACHE_PREFIX = 'inch-calc';
-const VERSION = '2025-12-24-3';            // bump this when you change assets
+const VERSION = '2025-12-24-4';            // bump this when you change assets
 const CACHE_NAME = `${CACHE_PREFIX}-${VERSION}`;
 
 const ASSETS = [
