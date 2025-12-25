@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Inch Calc</title>
+
+  <!-- Fonts & CSS -->
+  <link href="https://use.typekit.net/iwc3riw.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="layout-landscape.css">
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js" defer></script>
+  <script src="app.js" defer></script>
+
+  <!-- Icons / PWA -->
+  <link rel="icon" type="image/png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest?v=portr-2025-09-01">
+  <meta name="application-name" content="Inch Calc" />
+  <meta name="apple-mobile-web-app-title" content="Inch Calc" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#1f4d4d" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0e2a2a" media="(prefers-color-scheme: dark)" />
+
+  
+</head>
+<body>
+
+<!-- Hidden SVG filter that creates a true inner shadow inside glyphs -->
+<svg width="0" height="0" style="position:absolute">
+  <filter id="textInnerShadow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="blur"/>
+    <feOffset dy="1" result="offset"/>
+    <feComposite in="offset" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="inner"/>
+    <feFlood flood-color="black" flood-opacity="0.45" result="shade"/>
+    <feComposite in="shade" in2="inner" operator="in" result="shadow"/>
+    <feComposite in="SourceGraphic" in2="shadow" operator="over"/>
+  </filter>
+</svg>
+
+
+<div id="card" class="card">
+
+  <!-- ===== Unified BEZEL: Tape + Results inside ===== -->
+  <div class="bezel panel">
+    <div class="bezel__rim">
+
+      <!-- Tape -->
+      <div class="panel tape">
+        <div class="tape-inner" id="tape">
+          <div class="center-line"></div>
+          <div class="sweep" id="sweep"></div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="panel results">
+        <div class="pad">
+          <div class="history-row">
+            <div class="history" id="history">
+              <div class="row input" id="inputLine"></div>
+            </div>
+            <button id="eqSaveBtn" class="eq-save-btn" aria-label="Save equation" type="button">⧉</button>
+          </div>
+          <div class="output">
+            <div id="fractionLine" title="Tap to copy"></div>
+            <div id="decimalLine" title="Tap to copy"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- ===== /BEZEL ===== -->
+
+  <!-- Memory (5×1) -->
+  <div class="panel memory pad">
+    <div class="memory-grid">
+      <button class="btn mem" data-mem="0"><span class="btn-label">M1</span></button>
+      <button class="btn mem" data-mem="1"><span class="btn-label">M2</span></button>
+      <button class="btn mem" data-mem="2"><span class="btn-label">M3</span></button>
+      <button class="btn mem" data-mem="3"><span class="btn-label">M4</span></button>
+      <button class="btn mem" data-mem="4"><span class="btn-label">M5</span></button>
+    </div>
+</div>
+
+<!-- RIGHT: Keypad (console + fractions) -->
+<div class="panel keypad pad">
+    <div class="console-grid">
+      <!-- Utility rail (col 1) -->
+      <button class="btn back r1 c1" data-action="back"><span class="btn-label">←</span></button>
+      <button class="btn clear r2 c1" data-action="clear"><span class="btn-label">C</span></button>
+      <button class="btn r3 c1" id="menuBtn"><span class="btn-label">Tools</span></button>
+      <button class="btn operator r4 c1" id="feetBtn"><span class="btn-label">Ft</span></button>
+
+      <!-- Numbers (cols 2–4) -->
+      <button class="btn r1 c2" data-val="7"><span class="btn-label">7</span></button>
+      <button class="btn r1 c3" data-val="8"><span class="btn-label">8</span></button>
+      <button class="btn r1 c4" data-val="9"><span class="btn-label">9</span></button>
+      <button class="btn r2 c2" data-val="4"><span class="btn-label">4</span></button>
+      <button class="btn r2 c3" data-val="5"><span class="btn-label">5</span></button>
+      <button class="btn r2 c4" data-val="6"><span class="btn-label">6</span></button>
+      <button class="btn r3 c2" data-val="1"><span class="btn-label">1</span></button>
+      <button class="btn r3 c3" data-val="2"><span class="btn-label">2</span></button>
+      <button class="btn r3 c4" data-val="3"><span class="btn-label">3</span></button>
+
+      <!-- Repeat button -->
+      <button class="btn operator r4 c2" id="repeatBtn" title="Repeat last op+term" disabled><span class="btn-label">↻</span></button>
+      <button class="btn r4 c3" data-val="0"><span class="btn-label">0</span></button>
+      <button class="btn dec r4 c4" data-val="."><span class="btn-label">.</span></button>
+
+      <!-- Operator rail (col 5) -->
+      <button class="btn operator r1 c5" data-op="+"><span class="btn-label">+</span></button>
+      <button class="btn operator r2 c5" data-op="-"><span class="btn-label">−</span></button>
+      <button class="btn operator r3 c5" data-op="*"><span class="btn-label">×</span></button>
+      <button class="btn operator r4 c5" data-op="/"><span class="btn-label">÷</span></button>
+    </div>
+
+    <div class="fract-grid">
+      <button class="btn frac" data-frac="1/16"><span class="btn-label">1/16</span></button>
+      <button class="btn frac" data-frac="1/8"><span class="btn-label">1/8</span></button>
+      <button class="btn frac" data-frac="3/16"><span class="btn-label">3/16</span></button>
+      <button class="btn frac" data-frac="1/4"><span class="btn-label">1/4</span></button>
+      <button class="btn frac" data-frac="5/16"><span class="btn-label">5/16</span></button>
+      <button class="btn frac" data-frac="3/8"><span class="btn-label">3/8</span></button>
+      <button class="btn frac" data-frac="7/16"><span class="btn-label">7/16</span></button>
+      <button class="btn frac" data-frac="1/2"><span class="btn-label">1/2</span></button>
+      <button class="btn frac" data-frac="9/16"><span class="btn-label">9/16</span></button>
+      <button class="btn frac" data-frac="5/8"><span class="btn-label">5/8</span></button>
+      <button class="btn frac" data-frac="11/16"><span class="btn-label">11/16</span></button>
+      <button class="btn frac" data-frac="3/4"><span class="btn-label">3/4</span></button>
+      <button class="btn frac" data-frac="13/16"><span class="btn-label">13/16</span></button>
+      <button class="btn frac" data-frac="7/8"><span class="btn-label">7/8</span></button>
+      <button class="btn frac" data-frac="15/16"><span class="btn-label">15/16</span></button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Carousel Modal -->
+<div id="cmBackdrop" class="cm-backdrop" aria-hidden="true">
+  <div class="cm-modal panel" role="dialog" aria-modal="true" aria-labelledby="cmTitle">
+    <div class="cm-headbar">
+      <h2 id="cmTitle">Inch Calc — Guide & Tools</h2>
+      <button id="cmClose" class="cm-iconbtn" aria-label="Close">✕</button>
+    </div>
+
+    <div class="cm-viewport">
+      <div id="cmTrack" class="cm-track">
+
+        <!-- Slide 0: Home / Hub -->
+        <section class="cm-card">
+          <header class="cm-card-head">Inch Calc &mdash; Tape Measure Calculator</header>
+          <p class="cm-card-sub">Tape Measure Companion Calculator.</p>
+
+          <p>Inch Calc keeps the tape-measure rhythm: punch 42 1/4 + 2.375 + 9/16 and it instantly shows the answer as a clean mixed fraction (snapped to 1/16″) plus the precise decimal.</p>
+          <p>The live tape view keeps a red center line locked on your result, quick feet entry, and five customizable number buttons make it faster than scribbling on a scrap.</p>
+
+          <div class="cm-tiles">
+            <button id="savedEqTile" class="cm-tile" type="button">Saved Equations &mdash; bookmark full problems</button>
+            <button id="memCenterTile" class="cm-tile" type="button">Memory Center &mdash; reusable M1–M5 sets</button>
+            <button id="chalkHelperTile" class="cm-tile" type="button">Hinge/Style Marker &mdash; quick door spacing</button>
+            <a href="segment_tape.html" class="cm-tile">Segment Calculator &mdash; break spans into equal pieces ↗</a>
+          </div>
+
+          <h3>What Inch Calc Does</h3>
+          <ul class="cm-list">
+            <li>Runs chain math in inches and feet with tape-calculator operators (+ − × ÷, C to clear).</li>
+            <li>Shows history the way you typed it (mixed numbers, decimals, inch marks) so you never lose context.</li>
+          </ul>
+
+          <h3>Why it beats a phone calculator</h3>
+          <ul class="cm-list">
+            <li>Mixed fraction + decimal results, both copy-on-tap.</li>
+            <li>Live tape visualization with a red pointer so you can pull the mark without guessing.</li>
+            <li>Dedicated Ft button (tap to enter feet, hold to preview) and every common 1/16th tile a thumb away.</li>
+          </ul>
+
+          <h3>Every-day shop workflow</h3>
+          <p>Tap a whole number, add a fraction tile, convert to feet mid-stream, recall M1–M5, then copy the answer straight to your cut list.</p>
+
+
+          <button id="installBtn" class="cm-tile" style="display:none;">Install App</button>
+        </section>
+
+        <!-- Slide 1: Saved Equations -->
+        <section class="cm-card" id="cmSavedEq">
+          <header class="cm-card-head">Saved Equations</header>
+          <p class="cm-card-sub">
+            History and Results.
+          </p>
+          <div id="eqList" class="eq-list"></div>
+          <p class="cm-note">
+            Use the ⧉ button next to the history to add equations.
+          </p>
+        </section>
+
+        <!-- Slide 2: Memory Center -->
+        <section class="cm-card" id="memCenter">
+          <header class="cm-card-head">Memory Center</header>
+          <p class="cm-card-sub">Save different mixes of M1–M5 as rows you can tap later.</p>
+
+          <div class="cm-tiles" id="mcControls" style="margin-bottom:10px;">
+            <button id="mcClear" class="cm-tile">Clear Slots</button>
+            <button id="mcSaveCurrent" class="cm-tile">Save Slots</button>
+            <span id="mcCounter" class="pill" aria-live="polite">0 saved</span>
+          </div>
+
+          <div class="mem-livegrid">
+            <div class="mem-live-head">
+              <span>Current User Preset</span>
+              <span class="mem-live-note">Edit on the keypad</span>
+            </div>
+            <div class="mem-live-row" id="memLiveRow"></div>
+          </div>
+
+
+          <div class="mem-sets">
+            <div class="mem-sets-heading">
+              <span>Saved sets</span>
+            </div>
+            <div class="mem-sets-list" id="memSetsList" role="list"></div>
+            <p class="cm-note mem-sets-empty" id="memSetsEmpty">
+              No saved sets yet. Tap “Save Slots” to capture the current five memory buttons.
+            </p>
+          </div>
+        </section>
+
+        
+        <!-- Slide 3: Chalk Line Helper -->
+        <section class="cm-card" id="chalkHelperCard">
+          <header class="cm-card-head">Hinge/Style Marker</header>
+          <p class="cm-card-sub">
+            Enter the door width and get hinge spacing.
+          </p>
+
+          <div class="chalk-width-grid">
+            <div class="chalk-field">
+              <label for="chalkFeet">Feet</label>
+              <input id="chalkFeet" type="number" inputmode="numeric" min="0" step="1" placeholder="16" />
+            </div>
+            <div class="chalk-field">
+              <label for="chalkInches">Inches</label>
+              <input id="chalkInches" type="number" inputmode="numeric" min="0" max="11" step="1" placeholder="0" />
+            </div>
+          </div>
+
+          <button id="chalkCalcBtn" class="cm-tile chalk-calc-btn" type="button">
+            Calculate marks
+          </button>
+
+          <p id="chalkModeStatus" class="chalk-mode-status" aria-live="polite"></p>
+          <div id="chalkResults" class="chalk-results" aria-live="polite">
+            <p class="chalk-results-empty">Enter a door width to see marks.</p>
+          </div>
+        </section>
+
+
+      </div>
+
+      <!-- Nav controls -->
+      <button id="cmPrev" class="cm-nav cm-prev" aria-label="Previous">‹</button>
+      <button id="cmNext" class="cm-nav cm-next" aria-label="Next">›</button>
+      <div id="cmDots" class="cm-dots" role="tablist" aria-label="Slides"></div>
+    </div>
+  </div>
+</div>
+
+
+<div id="updateToast" style="position:fixed; left:50%; transform:translateX(-50%); bottom:48px; background:#111; color:#fff; padding:8px 12px; border-radius:8px; display:none; gap:8px; align-items:center; z-index:40;"> <span>Update available</span>
+  <button id="updateReload" style="background:#0ea5a5; color:#111; border:none; border-radius:6px; padding:6px 10px; cursor:pointer;">Refresh</button>
+</div>
+<div id="copyToast"><span>Copied</span></div>
+ 
+
+
+</body>
+
+</html>
