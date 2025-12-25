@@ -631,7 +631,7 @@ function drawTape(center){
       tapeEntryCenter = snapped;
       tapeEntryTouched = true;
       insertValueIntoEntry(snapped, {
-        replaceIfNoOp: true,
+        replaceExisting: true,
         display: formatResultInchOnlyLabel(snapped)
       });
     };
@@ -1519,6 +1519,7 @@ memSetsListEl?.addEventListener('blur', (e) => {
     inputLine.textContent='';
 renderOutputs('', '');
 
+    lastGood = { value: 0, fraction: '', decimal: '' };
     tapeEntryCenter = 0;
     tapeEntryTouched = true;
     updateTapeDisplay(0);
@@ -1686,13 +1687,28 @@ function pushCurrentEntry(){
 function insertValueIntoEntry(value, options = {}){
   if (!Number.isFinite(value)) return;
   if (measure.active) finalizeMeasureToken();
-  const replaceIfNoOp = options.replaceIfNoOp === true;
+  const replaceExisting = options.replaceExisting === true;
   const displayOverride = options.display ? String(options.display) : '';
-  if (currentEntry){
-    const shouldReplace = replaceIfNoOp && tokens.length === 0;
-    if (!shouldReplace){
-      pushCurrentEntry();
+
+  if (replaceExisting){
+    if (currentEntry){
+      currentEntry = String(value);
+      currentEntryDisplay = displayOverride;
+      updateInput();
+      evaluate();
+      return;
     }
+    if (tokens.length && !isOp(tokens.at(-1))){
+      tokens[tokens.length-1] = String(value);
+      tokenDisplays[tokens.length-1] = displayOverride || undefined;
+      updateInput();
+      evaluate();
+      return;
+    }
+  }
+
+  if (currentEntry){
+    pushCurrentEntry();
   }
   currentEntry = String(value);
   currentEntryDisplay = displayOverride;
