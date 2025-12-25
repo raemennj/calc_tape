@@ -2066,6 +2066,411 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
     renderMessage('Enter a door width to see chalk marks.');
   }
 
+  function initSegmentTape(){
+    const root = document.getElementById('segmentTapeCard');
+    if (!root) return;
+
+    // ===== Helpers
+    const gcd = (a, b) => b ? gcd(b, a % b) : a;
+
+    // UPDATED: avoids outputs like 21 1/1; carries to whole when n===d
+    const toReadableFraction = (x, denom = 16) => {
+      if (isNaN(x)) return '';
+      const sign = x < 0 ? '-' : '';
+      const ax = Math.abs(x);
+
+      // small epsilon to dodge floating artifacts
+      let whole = Math.floor(ax + 1e-10);
+      const frac = ax - whole;
+
+      let n = Math.round(frac * denom);
+      let d = denom;
+
+      // carry 1 to the whole when rounding hits denom/denom
+      if (n === d) { whole += 1; n = 0; }
+
+      // reduce if needed
+      if (n !== 0) {
+        const div = gcd(n, d);
+        n /= div; d /= div;
+      }
+
+      if (n === 0) return sign + (whole ? String(whole) : '0');
+
+      return whole
+        ? `${sign}${whole} &nbsp;&nbsp;<span class='factor'><sup>${n}</sup>/<sub>${d}</sub></span>`
+        : `${sign}<span class='factor'><sup>${n}</sup>/<sub>${d}</sub></span>`;
+    };
+
+    const parseInput = input => {
+      if (!input) return NaN;
+      const s = String(input).trim();
+      if (s.includes(' ')) {
+        const [w, f] = s.split(' '), [n, d] = f.split('/').map(Number);
+        return (isNaN(n)||isNaN(d)||d===0)? NaN : Number(w) + (n/d);
+      }
+      if (s.includes('/')) {
+        const [n, d] = s.split('/').map(Number);
+        return (isNaN(n)||isNaN(d)||d===0)? NaN : (n/d);
+      }
+      return Number(s);
+    };
+
+    // ===== Tabs
+    const changeTab = choice => {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(choice + 'Tab').classList.add('active');
+      document.getElementById('dynamicLabel').innerText = choice === 'equal' ? 'Segments:' : 'Inches:';
+      const els = document.querySelectorAll('.length, .burn, .segmentType');
+      (choice === 'near') ? els.forEach(el => el.classList.add('lightgreen-bg')) : els.forEach(el => el.classList.remove('lightgreen-bg'));
+      calculate();
+    };
+
+    // ===== Tape zoom state
+    let marksDecimal = [];      // absolute inches from 0
+    let currentMarkIndex = 0;   // pointer into marksDecimal
+    let totalLengthIn = 0;      // total inches for ruler scaling
+    let zoomMode = 'window';    // 'window' | 'full'
+    let zoomWidth = 3;          // inches when window mode
+
+    // ===== Ruler with zoom
+    const tape = {
+      left: 14, right: 14, top: 6, bottom: 8, h: 110,
+      window(){
+        let L = 0, R = totalLengthIn || 1;
+        if (zoomMode === 'window' && marksDecimal.length){
+          const center = marksDecimal[currentMarkIndex] ?? 0;
+          const w = Math.max(1/8, zoomWidth); // at least 1/8" window
+          if ((totalLengthIn||0) > w){
+            L = Math.max(0, Math.min(center - w/2, totalLengthIn - w));
+            R = L + w;
+          }
+        }
+        this.winL = L; this.winR = Math.max(L + 1/16, R); // ensure non-zero width
+        return [this.winL, this.winR];
+      },
+      scaleX(x, w){
+        const [L, R] = this.window();
+        const inner = Math.max(1, w - this.left - this.right);
+        const clamped = Math.max(L, Math.min(R, x));
+        return this.left + ((clamped - L) / (R - L)) * inner;
+      },
+      draw(){
+        const wrap = document.getElementById('tapeContainer');
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        const w = wrap.clientWidth || 560, h = this.h;
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+        svg.setAttribute('role','img');
+
+        // background
+        const bg = document.createElementNS(svgNS, 'rect');
+        bg.setAttribute('x', 0); bg.setAttribute('y', 0);
+        bg.setAttribute('width', w); bg.setAttribute('height', h);
+        bg.setAttribute('fill', 'lightyellow');
+        svg.appendChild(bg);
+
+        // baseline
+        const base = document.createElementNS(svgNS, 'line');
+        base.setAttribute('x1', this.left); base.setAttribute('x2', w - this.right);
+        base.setAttribute('y1', h - this.bottom); base.setAttribute('y2', h - this.bottom);
+        base.setAttribute('stroke', '#000'); base.setAttribute('stroke-width', 1);
+        svg.appendChild(base);
+
+        // ticks within window
+        const [L, R] = this.window();
+        const startF = Math.floor(L * 16);
+        const endF   = Math.ceil(R * 16);
+
+        // gradient background (classic blade vibe)
+        const defs = document.createElementNS(svgNS,'defs');
+        const grad = document.createElementNS(svgNS,'linearGradient');
+        grad.setAttribute('id','blade'); grad.setAttribute('x1','0'); grad.setAttribute('x2','0'); grad.setAttribute('y1','0'); grad.setAttribute('y2','1');
+        const s1 = document.createElementNS(svgNS,'stop'); s1.setAttribute('offset','0%');  s1.setAttribute('stop-color','#fff6a6');
+        const s2 = document.createElementNS(svgNS,'stop'); s2.setAttribute('offset','100%'); s2.setAttribute('stop-color','#ffe06a');
+        grad.appendChild(s1); grad.appendChild(s2); defs.appendChild(grad); svg.appendChild(defs);
+
+        // repaint bg using gradient
+        bg.setAttribute('fill','url(#blade)');
+
+        for(let f=startF; f<=endF; f++){
+          const inch = f/16;
+          const x = this.scaleX(inch, w);
+          const isInch = f % 16 === 0;
+          const isHalf = f % 8 === 0 && !isInch;
+          const isQuarter = f % 4 === 0 && !isInch && !isHalf;
+          const isEighth = f % 2 === 0 && !isInch && !isHalf && !isQuarter;
+          const len = isInch? 75 : isHalf? 55 : isQuarter? 40 : isEighth? 20 : 20;
+          const y1 = h - this.bottom, y2 = y1 - len;
+          const tick = document.createElementNS(svgNS, 'line');
+          tick.setAttribute('x1', x); tick.setAttribute('x2', x);
+          tick.setAttribute('y1', y1); tick.setAttribute('y2', y2);
+          tick.setAttribute('stroke', '#000'); tick.setAttribute('stroke-width', (isInch? 1.5 : 1.5));
+          svg.appendChild(tick);
+
+          if (isInch){
+            const label = document.createElementNS(svgNS, 'text');
+            label.setAttribute('x', x+2); label.setAttribute('y', y2-6);
+            label.setAttribute('font-size', 14);
+            label.setAttribute('font-weight', '700');
+            label.setAttribute('font-family', 'dunbar-tall, sans-serif');
+            label.setAttribute('fill', '#000');
+            label.textContent = String(inch.toFixed(0));
+            svg.appendChild(label);
+          }
+        }
+
+        // subtle edge shading
+        const shadeTop = document.createElementNS(svgNS,'rect');
+        shadeTop.setAttribute('x',0); shadeTop.setAttribute('y',0);
+        shadeTop.setAttribute('width',w); shadeTop.setAttribute('height',8);
+        shadeTop.setAttribute('fill','rgba(0,0,0,.06)');
+        svg.appendChild(shadeTop);
+
+        wrap.appendChild(svg);
+        drawMarker();
+      }
+    };
+
+    function drawMarker(){
+      const wrap = document.getElementById('tapeContainer');
+      const svg = wrap?.querySelector('svg');
+      if (!svg) return;
+      const w = wrap.clientWidth || 560, h = 110;
+      const gOld = svg.querySelector('#marker');
+      if (gOld) gOld.innerHTML = '';
+      const g = gOld || document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.setAttribute('id','marker');
+
+      const x = tape.scaleX(marksDecimal[currentMarkIndex] || 0, w);
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', x); line.setAttribute('x2', x);
+      line.setAttribute('y1', 0); line.setAttribute('y2', h);
+      line.setAttribute('stroke','#d91e18'); line.setAttribute('stroke-width','4');
+
+      const tri = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+      const t = 8; // size
+      tri.setAttribute('fill','#d91e18');
+
+      g.appendChild(tri); g.appendChild(line);
+      svg.appendChild(g);
+
+      // label update
+      document.getElementById('markIndex').textContent = marksDecimal.length? (currentMarkIndex+1) : 'ƒ?"';
+      document.getElementById('markCount').textContent = marksDecimal.length;
+      const v = marksDecimal[currentMarkIndex] || 0;
+      document.getElementById('markFrac').innerHTML = toReadableFraction(v);
+    }
+
+    function gotoMark(i){
+      if (!marksDecimal.length) return;
+      currentMarkIndex = Math.max(0, Math.min(marksDecimal.length-1, i));
+      tape.draw(); // re-center window on the new mark
+    }
+
+    // ===== Main calculate (original + hook)
+    const calculate = () => {
+      const [lengthInput, endDistanceInput, valueUsedInput] = [document.getElementById('length').value, document.getElementById('endDistance').value, document.getElementById('valueUsed').value];
+      const method = document.querySelector('.tab.active').id.startsWith('equal') ? 'equal' : 'near';
+      const [length, endDistance, valueUsed] = [parseInput(lengthInput), parseInput(endDistanceInput), parseInput(valueUsedInput)];
+
+      if (isNaN(length) || isNaN(endDistance) || isNaN(valueUsed)) {
+        document.getElementById('segmentResult').innerText = 'Please enter valid numbers or fractions.';
+        document.getElementById('marksResult').innerHTML = '';
+        marksDecimal = []; totalLengthIn = 0; tape.draw();
+        return;
+      }
+
+      let remainingLength = length - 2 * endDistance, segments = [toReadableFraction(endDistance)], segmentLength, numSegments;
+      if (method === 'equal') { numSegments = Math.max(1, Math.round(valueUsed)); segmentLength = remainingLength / numSegments; }
+      else { const exactNumSegments = remainingLength / valueUsed; numSegments = Math.max(1, Math.round(exactNumSegments)); segmentLength = remainingLength / numSegments; }
+
+      // build marks list (including end burn and each segment)
+      marksDecimal = [endDistance];
+      for (let i = 0; i < numSegments; i++){
+        const p = (i + 1) * segmentLength + endDistance;
+        marksDecimal.push(p);
+        segments.push(toReadableFraction(p));
+      }
+
+      document.getElementById('segmentResult').innerHTML = `Segment length: ${toReadableFraction(segmentLength)}"`;
+      document.getElementById('marksResult').innerHTML = `Marks:<br><br>${segments.join('"<hr><br>')} `;
+
+      totalLengthIn = Math.max(0, length);
+      tape.draw();
+      gotoMark(0);
+    };
+
+    // ===== Debounce
+    let debounceTimer;
+    const debounceCalculate = () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(calculate, 200); };
+
+    // ===== Button press helper (click vs long-press) + no-select cleanup + keyboard
+    function attachPress(btn, onClick, onLongPress){
+      const HOLD_MS = 500; // long-press threshold
+      let timer = null, longed = false;
+
+      const clearSelection = () => {
+        const sel = window.getSelection && window.getSelection();
+        if (sel && sel.removeAllRanges) sel.removeAllRanges();
+      };
+
+      const start = (e) => {
+        longed = false;
+        if (e && typeof e.preventDefault === 'function') e.preventDefault(); // avoid ghost click
+        clearSelection(); // nuke any existing text highlight (iOS/Android)
+        timer = setTimeout(() => {
+          longed = true;
+          onLongPress();
+          if (navigator.vibrate) try { navigator.vibrate(12); } catch {}
+        }, HOLD_MS);
+      };
+      const clear = () => { if (timer) clearTimeout(timer); timer = null; };
+      const end = () => { clear(); if (!longed) onClick(); };
+
+      if ('PointerEvent' in window){
+        btn.addEventListener('pointerdown', start, {passive:false});
+        btn.addEventListener('pointerup', end);
+        btn.addEventListener('pointerleave', clear);
+        btn.addEventListener('pointercancel', clear);
+      } else {
+        btn.addEventListener('mousedown', start);
+        btn.addEventListener('mouseup', end);
+        btn.addEventListener('mouseleave', clear);
+        btn.addEventListener('touchstart', start, {passive:false});
+        btn.addEventListener('touchend', end);
+        btn.addEventListener('touchcancel', clear);
+      }
+
+      // Keyboard support (Enter / Space to "click")
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      });
+
+      // Stop context menu on long-press
+      btn.addEventListener('contextmenu', (e)=> e.preventDefault());
+    }
+
+    // ===== Listeners
+    // tabs
+    document.getElementById('equalTab').addEventListener('keydown', e=>{ if (e.key === 'Enter') { e.preventDefault(); changeTab('equal'); }});
+    document.getElementById('nearTab').addEventListener('keydown',  e=>{ if (e.key === 'Enter') { e.preventDefault(); changeTab('near');  }});
+    document.getElementById('equalTab').addEventListener('click', ()=> changeTab('equal'));
+    document.getElementById('nearTab').addEventListener('click',  ()=> changeTab('near'));
+
+    // inputs
+    document.getElementById('length').addEventListener('input', debounceCalculate);
+    document.getElementById('endDistance').addEventListener('input', debounceCalculate);
+    document.getElementById('valueUsed').addEventListener('input', debounceCalculate);
+
+    // tape nav buttons: click vs long-press
+    const prevBtn = document.getElementById('prevMark');
+    const nextBtn = document.getElementById('nextMark');
+    attachPress(prevBtn,
+      ()=> gotoMark(currentMarkIndex-1),            // click
+      ()=> gotoMark(0)                              // long-press -> first
+    );
+    attachPress(nextBtn,
+      ()=> gotoMark(currentMarkIndex+1),            // click
+      ()=> gotoMark(Math.max(0, marksDecimal.length-1)) // long-press -> last
+    );
+
+    // tape redraw on resize
+    window.addEventListener('resize', ()=> tape.draw());
+
+    // ===== Swipe / Wheel / Keyboard navigation on the tape
+    (() => {
+      const el = document.getElementById('tapeContainer');
+
+      // Keyboard left/right when the tape has focus
+      el.setAttribute('tabindex', '0');
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft')  { e.preventDefault(); gotoMark(currentMarkIndex - 1); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); gotoMark(currentMarkIndex + 1); }
+      });
+
+      // Trackpad/mouse horizontal swipe (wheel) support with a short throttle
+      let lastWheel = 0;
+      el.addEventListener('wheel', (e) => {
+        // Only react to mostly-horizontal gestures
+        if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+        const now = performance.now();
+        if (now - lastWheel < 180) return; // throttle
+        lastWheel = now;
+        e.preventDefault();
+        if (e.deltaX > 0) gotoMark(currentMarkIndex + 1);
+        else              gotoMark(currentMarkIndex - 1);
+      }, { passive: false });
+
+      // Touch/mouse swipe with Pointer Events (plus a touch fallback)
+      const THRESH = 28; // px horizontal movement required to count as a swipe
+
+      function installPointerSwipe(target) {
+        let sx = 0, sy = 0, tracking = false, handled = false;
+
+        const onDown = (x, y, id) => {
+          sx = x; sy = y; tracking = true; handled = false;
+          target.setPointerCapture?.(id);
+        };
+
+        const onMove = (x, y, rawEvt) => {
+          if (!tracking || handled) return;
+          const dx = x - sx, dy = y - sy;
+          // Require mostly-horizontal + threshold
+          if (Math.abs(dx) < THRESH || Math.abs(dx) <= Math.abs(dy)) return;
+
+          handled = true; // one step per swipe
+          if (dx < 0) gotoMark(currentMarkIndex + 1);
+          else        gotoMark(currentMarkIndex - 1);
+          rawEvt.preventDefault(); // stop accidental page moves now that we handled it
+        };
+
+        const onUp = (id) => {
+          tracking = false; handled = false;
+          try { target.releasePointerCapture?.(id); } catch {}
+        };
+
+        if ('PointerEvent' in window) {
+          target.addEventListener('pointerdown', e => onDown(e.clientX, e.clientY, e.pointerId), { passive: true });
+          target.addEventListener('pointermove', e => onMove(e.clientX, e.clientY, e), { passive: false });
+          target.addEventListener('pointerup',   e => onUp(e.pointerId), { passive: true });
+          target.addEventListener('pointercancel', e => onUp(e.pointerId), { passive: true });
+        } else {
+          // iOS <13 fallback
+          target.addEventListener('touchstart', e => { const t = e.changedTouches[0]; onDown(t.clientX, t.clientY, 0); }, { passive: true });
+          target.addEventListener('touchmove',  e => { const t = e.changedTouches[0]; onMove(t.clientX, t.clientY, e); }, { passive: false });
+          target.addEventListener('touchend',   () => onUp(0), { passive: true });
+          target.addEventListener('touchcancel',() => onUp(0), { passive: true });
+        }
+      }
+
+      installPointerSwipe(el);
+    })();
+
+    // ===== Modal
+    const modal = document.getElementById('instructionsModal');
+    const showModalBtn = document.getElementById('showModalBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    function openModal() { modal.style.display = "block"; closeModalBtn.focus(); }
+    function closeModal() { modal.style.display = "none"; showModalBtn.focus(); }
+    showModalBtn.addEventListener('click', openModal);
+    closeModalBtn.addEventListener('click', closeModal);
+    closeModalBtn.addEventListener('keypress', function(event) { if (event.key === 'Enter' || event.keyCode === 13) { closeModal(); }});
+    window.addEventListener('click', function(event) { if (event.target === modal) { closeModal(); }});
+
+    // ===== Start
+    calculate();
+
+    window._segmentTapeRefresh = () => {
+      requestAnimationFrame(() => tape.draw());
+    };
+  }
+
   /* ===== Carousel Modal (cards only, not full-screen screenshot) ===== */
 (function carouselModal(){
   const backdrop = document.getElementById('cmBackdrop');
@@ -2341,6 +2746,7 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
   renderMemorySets();
   renderSavedEq();
   initChalkLineHelper();
+  initSegmentTape();
   attachRipples();
   attachPressState();
   applyFractionPalettes();
@@ -2422,9 +2828,26 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
     }
   }
 
+  function openSegmentTapeCard(){
+    const segCard = document.getElementById('segmentTapeCard');
+    if (typeof window._cmOpen === 'function'){
+      window._cmOpen();
+      if (typeof window._cmIndexOf === 'function' && typeof window._cmGoTo === 'function' && segCard){
+        const idx = window._cmIndexOf(segCard);
+        if (idx >= 0) window._cmGoTo(idx);
+      }
+    }
+    if (typeof window._segmentTapeRefresh === 'function') window._segmentTapeRefresh();
+  }
+
   document.getElementById('eqClearBtn')?.addEventListener('click', clearSavedEq);
   document.getElementById('savedEqTile')?.addEventListener('click', openSavedEqCard);
   document.getElementById('memCenterTile')?.addEventListener('click', openMemCenterCard);
+  const segmentTile = document.getElementById('segmentTapeTile') || document.querySelector('.cm-tile[href="segment_tape.html"]');
+  segmentTile?.addEventListener('click', (e) => {
+    e.preventDefault();
+    openSegmentTapeCard();
+  });
 
 })();
   

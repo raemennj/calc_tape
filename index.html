@@ -259,6 +259,69 @@
           </div>
         </section>
 
+        <!-- Slide 4: Segment Calculator -->
+        <section class="cm-card" id="segmentTapeCard">
+          <header class="cm-card-head">Segment Calculator</header>
+          <p class="cm-card-sub">Break spans into equal pieces with a live tape preview.</p>
+
+          <div class="segment-wrap" aria-label="Segment calculator">
+            <div class="tape-wrapper" aria-label="Interactive tape measure">
+              <div class="tape-head">
+                <button class="tape-btn" id="prevMark" aria-label="Previous mark" title="Click: previous ƒ?› Long-press: first">ƒ-?</button>
+                <div class="spacer"></div>
+                <div class="label pill" aria-live="polite"> <span id="markIndex">ƒ?"</span> of <span id="markCount">0</span> &nbsp;Aú&nbsp;&nbsp;Aú&nbsp;&nbsp;Aú&nbsp;<span id="markFrac">ƒ?"</span> <small>"</small> </div>
+                <div class="spacer"></div>
+                <button class="tape-btn" id="nextMark" aria-label="Next mark" title="Click: next ƒ?› Long-press: last">ƒ-</button>
+              </div>
+              <div id="tapeContainer" role="img" aria-label="Ruler with 1/16-inch ticks"></div>
+            </div>
+            <div class="tab-container">
+              <div id="equalTab" class="tab active" tabindex="0" role="button">Equal</div>
+              <div id="nearTab" class="tab" tabindex="0" role="button">Near</div>
+            </div>
+            <form class="input-container">
+              <div class="length">
+                <label for="length">Length:</label>
+                <br>
+                <input type="text" id="length">
+              </div>
+              <div class="burn">
+                <label for="endDistance">End allowance:</label>
+                <br>
+                <input type="text" id="endDistance">
+              </div>
+              <div class="segmentType">
+                <label id="dynamicLabel" for="valueUsed">Segments:</label>
+                <br>
+                <input type="text" id="valueUsed">
+              </div>
+            </form>
+            <div class="resultsBG">
+              <p id="segmentResult" role="text" aria-live="assertive" aria-label="Segment Length Result"></p>
+              <p id="marksResult" role="text" aria-live="assertive" aria-label="Segment Marks (scrollable list)"></p>
+            </div>
+            <div class="readme-container">
+              <button id="showModalBtn" type="button">Instructions</button>
+              <div id="instructionsModal" class="modal">
+                <div class="modal-content"> Tap "Equal" for equal segments or "Near" for segments close to a target size. <br>
+                  <br>
+                  Fill the "Length" field with the total length of your material. <br>
+                  <br>
+                  Enter the distance you will leave at each end in the "End allowance" field. <br>
+                  <br>
+                  In the last field, enter the number of segments or the approximate size of each segment, depending on the chosen mode. <br>
+                  <br>
+                  <a href="index.html">Tape Measure Calculator</a> <br>
+                  <br>
+                  Tip: Swipe left or right instead of using the ƒ-? ƒ- buttons to step through the marks. <br>
+                  Long-press ƒ-? to jump to the first mark; long-press ƒ- to jump to the last. <br>
+                  <br>
+                  <span class="close-btn" id="closeModalBtn" tabindex="0">Close</span> </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
 
       </div>
 

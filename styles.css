@@ -797,3 +797,255 @@
   font-weight:800;
   color:#e8fff0;
 }
+
+/* ===== Segment Tape (embedded) ===== */
+#segmentTapeCard{
+  --seg-yellow: var(--num, lightyellow);
+  --seg-blue: var(--mem, lightblue);
+  --seg-green: lightgreen;
+}
+#segmentTapeCard .segment-wrap{
+  font-size:18px;
+  padding:6px;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  user-select:none;
+  font-family:"dunbar-tall", sans-serif;
+  color:#111;
+}
+#segmentTapeCard .tab-container{
+  display:flex;
+  width:100%;
+}
+#segmentTapeCard .tab{
+  flex:1;
+  padding:15px;
+  font-size:19px;
+  cursor:pointer;
+  border-left:1px solid #363636;
+  border-right:1px solid #363636;
+  border-bottom:1px solid #363636;
+  text-align:center;
+  background-color:var(--seg-yellow);
+  border-top-left-radius:8px;
+  border-top-right-radius:8px;
+  margin-top:5px;
+}
+#segmentTapeCard .tab.active{
+  background-color:#ccc;
+  border-bottom:0px;
+  border-top-left-radius:10px;
+  border-top-right-radius:10px;
+  margin-top:0px;
+}
+#segmentTapeCard #equalTab.active{
+  background-color:var(--seg-blue);
+  border-left:0px;
+}
+#segmentTapeCard #nearTab.active{
+  background-color:var(--seg-green);
+  border-right:0px;
+}
+#segmentTapeCard .lightgreen-bg{
+  background-color:var(--seg-green) !important;
+}
+#segmentTapeCard .input-container{
+  display:flex;
+  justify-content:space-between;
+  width:100%;
+}
+#segmentTapeCard .input-container div{
+  flex:1;
+  text-align:center;
+}
+#segmentTapeCard input{
+  font-size:18px;
+  max-width:100%;
+  text-align:center;
+  padding:10px;
+  margin-top:10px;
+  background-color:var(--seg-yellow);
+  width:70%;
+  font-family:"dunbar-tall", sans-serif;
+  cursor:pointer;
+}
+#segmentTapeCard #marksResult{
+  text-align:center;
+  max-height:42vh;
+  overflow-y:auto;
+  padding:8px 12px;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+}
+#segmentTapeCard #marksResult hr{
+  border:none;
+  border-top:1px solid #c8c8c8;
+  margin:6px 0;
+}
+#segmentTapeCard #segmentResult{
+  text-align:center;
+}
+#segmentTapeCard .length,
+#segmentTapeCard .burn,
+#segmentTapeCard .segmentType{
+  width:33%;
+  float:left;
+  text-align:center;
+  padding-top:15px;
+  padding-bottom:14px;
+  background-color:var(--seg-blue);
+  border-bottom:1px solid #363636;
+}
+#segmentTapeCard .burn{
+  width:34%;
+}
+#segmentTapeCard .resultsBG{
+  text-align:center;
+  background-color:var(--seg-yellow);
+  width:100%;
+}
+#segmentTapeCard .factor sup,
+#segmentTapeCard .factor sub{
+  font-size:0.85em;
+}
+#segmentTapeCard .readme-container{
+  display:flex;
+  justify-content:space-between;
+  text-align:center;
+  width:100%;
+  border:none;
+}
+#segmentTapeCard .readme-container button{
+  flex:1;
+  text-align:center;
+  text-decoration:underline;
+  background-color:var(--seg-yellow);
+  border:none;
+  border-bottom-left-radius:10px;
+  border-bottom-right-radius:10px;
+  font-size:18px;
+  padding-bottom:10px;
+  font-family:"dunbar-tall", sans-serif;
+}
+#segmentTapeCard .close-btn{
+  text-decoration:underline;
+  cursor:pointer;
+}
+#segmentTapeCard .modal{
+  display:none;
+  position:fixed;
+  z-index:40;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  background-color:rgba(0,0,0,0.4);
+}
+#segmentTapeCard #showModalBtn{
+  color:black;
+  cursor:pointer;
+}
+#segmentTapeCard .modal-content{
+  background-color:var(--seg-yellow);
+  margin:5% auto;
+  padding:20px;
+  border-radius:14px;
+  border:1px solid #888;
+  width:80%;
+  max-height:calc(100vh - 40px);
+  overflow-y:auto;
+}
+@media screen and (orientation:landscape){
+  #segmentTapeCard .modal-content{
+    max-height:calc(100vh - 80px);
+  }
+}
+@media (min-width:601px){
+  #segmentTapeCard .segment-wrap{
+    margin:0 auto;
+    max-width:600px;
+  }
+}
+#segmentTapeCard .tape-wrapper{
+  width:100%;
+  background:var(--seg-yellow);
+  border:1px solid #1b1b1b;
+  border-radius:12px;
+  margin:8px 0 6px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6), inset 0 -2px 0 rgba(0,0,0,.06);
+}
+#segmentTapeCard .tape-head{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+}
+#segmentTapeCard .tape-head .spacer{
+  flex:1;
+}
+#segmentTapeCard .tape-head .label{
+  min-width:140px;
+  text-align:center;
+  font-weight:600;
+}
+#segmentTapeCard .tape-btn{
+  appearance:none;
+  border:1px solid #1b1b1b;
+  background:#fff;
+  padding:6px 12px;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:16px;
+  font-family:"dunbar-tall", sans-serif;
+  box-shadow:0 1px 0 rgba(0,0,0,.06);
+}
+#segmentTapeCard .tape-btn:active{
+  transform:translateY(1px);
+}
+#segmentTapeCard #tapeContainer{
+  width:100%;
+  height:114px;
+  position:relative;
+  overflow:hidden;
+  border-top:1px solid #1b1b1b;
+  border-bottom-left-radius:12px;
+  border-bottom-right-radius:12px;
+  touch-action:pan-y;
+}
+#segmentTapeCard #tapeContainer svg{
+  display:block;
+  width:100%;
+  height:120px;
+}
+#segmentTapeCard .pill{
+  display:inline-block;
+  font-size:18px;
+  font-family:"dunbar-tall", sans-serif;
+  background:#fff;
+  border:1px solid #1b1b1b;
+  border-radius:999px;
+  padding:4px 12px;
+  line-height:1;
+  color:#111;
+}
+#segmentTapeCard .pill small{
+  opacity:.9;
+}
+#segmentTapeCard .tape-btn,
+#segmentTapeCard .tab,
+#segmentTapeCard .pill,
+#segmentTapeCard .label,
+#segmentTapeCard #tapeContainer,
+#segmentTapeCard .readme-container button{
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+  -webkit-tap-highlight-color:transparent;
+  -ms-user-select:none;
+}
+#segmentTapeCard .tape-btn{
+  touch-action:manipulation;
+}
