@@ -54,7 +54,7 @@
         <div class="tape-inner" id="tape">
           <div class="center-line"></div>
           <div class="sweep" id="sweep"></div>
-        </div>
+  </div>
       </div>
 
       <!-- Results -->
@@ -63,15 +63,15 @@
           <div class="history-row">
             <div class="history" id="history">
               <div class="row input" id="inputLine"></div>
-            </div>
+  </div>
             <button id="eqSaveBtn" class="eq-save-btn" aria-label="Save equation" type="button">⧉</button>
           </div>
           <div class="output">
             <div id="fractionLine" title="Tap to copy"></div>
             <div id="decimalLine" title="Tap to copy"></div>
-          </div>
+  </div>
         </div>
-      </div>
+  </div>
 
     </div>
   </div>
@@ -86,7 +86,7 @@
       <button class="btn mem" data-mem="3"><span class="btn-label">M4</span></button>
       <button class="btn mem" data-mem="4"><span class="btn-label">M5</span></button>
     </div>
-</div>
+  </div>
 
 <!-- RIGHT: Keypad (console + fractions) -->
 <div class="panel keypad pad">
@@ -149,186 +149,182 @@
       <button id="cmClose" class="cm-iconbtn" aria-label="Close">✕</button>
     </div>
 
-    <div class="cm-viewport">
-      <div id="cmTrack" class="cm-track">
+    <div class="cm-tabs" role="tablist" aria-label="Tools">
+      <button id="cmTabSegment" class="cm-tab" role="tab" aria-selected="true" aria-controls="cmPanelSegment" type="button">Segment Tool</button>
+      <button id="cmTabHistory" class="cm-tab" role="tab" aria-selected="false" aria-controls="cmPanelHistory" type="button">History & Saved</button>
+      <button id="cmTabStyle" class="cm-tab" role="tab" aria-selected="false" aria-controls="cmPanelStyle" type="button">Style Divider</button>
+    </div>
 
-        <!-- Slide 0: Home / Hub -->
-        <section class="cm-card">
-          <header class="cm-card-head">Inch Calc &mdash; Tape Measure Calculator</header>
-          <p class="cm-card-sub">Tape Measure Companion Calculator.</p>
-
-          <p>Inch Calc keeps the tape-measure rhythm: punch 42 1/4 + 2.375 + 9/16 and it instantly shows the answer as a clean mixed fraction (snapped to 1/16″) plus the precise decimal.</p>
-          <p>The live tape view keeps a red center line locked on your result, quick feet entry, and five customizable number buttons make it faster than scribbling on a scrap.</p>
-
-          <div class="cm-tiles">
-            <button id="savedEqTile" class="cm-tile" type="button">Saved Equations &mdash; bookmark full problems</button>
-            <button id="memCenterTile" class="cm-tile" type="button">Memory Center &mdash; reusable M1–M5 sets</button>
-            <button id="chalkHelperTile" class="cm-tile" type="button">Hinge/Style Marker &mdash; quick door spacing</button>
-            <a href="segment_tape.html" class="cm-tile">Segment Calculator &mdash; break spans into equal pieces ↗</a>
-          </div>
-
-          <h3>What Inch Calc Does</h3>
-          <ul class="cm-list">
-            <li>Runs chain math in inches and feet with tape-calculator operators (+ − × ÷, C to clear).</li>
-            <li>Shows history the way you typed it (mixed numbers, decimals, inch marks) so you never lose context.</li>
-          </ul>
-
-          <h3>Why it beats a phone calculator</h3>
-          <ul class="cm-list">
-            <li>Mixed fraction + decimal results, both copy-on-tap.</li>
-            <li>Live tape visualization with a red pointer so you can pull the mark without guessing.</li>
-            <li>Dedicated Ft button (tap to enter feet, hold to preview) and every common 1/16th tile a thumb away.</li>
-          </ul>
-
-          <h3>Every-day shop workflow</h3>
-          <p>Tap a whole number, add a fraction tile, convert to feet mid-stream, recall M1–M5, then copy the answer straight to your cut list.</p>
-
-
-          <button id="installBtn" class="cm-tile" style="display:none;">Install App</button>
-        </section>
-
-        <!-- Slide 1: Saved Equations -->
-        <section class="cm-card" id="cmSavedEq">
-          <header class="cm-card-head">Saved Equations</header>
-          <p class="cm-card-sub">
-            History and Results.
-          </p>
-          <div id="eqList" class="eq-list"></div>
-          <p class="cm-note">
-            Use the ⧉ button next to the history to add equations.
-          </p>
-        </section>
-
-        <!-- Slide 2: Memory Center -->
-        <section class="cm-card" id="memCenter">
-          <header class="cm-card-head">Memory Center</header>
-          <p class="cm-card-sub">Save different mixes of M1–M5 as rows you can tap later.</p>
-
-          <div class="cm-tiles" id="mcControls" style="margin-bottom:10px;">
-            <button id="mcClear" class="cm-tile">Clear Slots</button>
-            <button id="mcSaveCurrent" class="cm-tile">Save Slots</button>
-            <span id="mcCounter" class="pill" aria-live="polite">0 saved</span>
-          </div>
-
-          <div class="mem-livegrid">
-            <div class="mem-live-head">
-              <span>Current User Preset</span>
-              <span class="mem-live-note">Edit on the keypad</span>
-            </div>
-            <div class="mem-live-row" id="memLiveRow"></div>
-          </div>
-
-
-          <div class="mem-sets">
-            <div class="mem-sets-heading">
-              <span>Saved sets</span>
-            </div>
-            <div class="mem-sets-list" id="memSetsList" role="list"></div>
-            <p class="cm-note mem-sets-empty" id="memSetsEmpty">
-              No saved sets yet. Tap “Save Slots” to capture the current five memory buttons.
-            </p>
-          </div>
-        </section>
-
-        
-        <!-- Slide 3: Chalk Line Helper -->
-        <section class="cm-card" id="chalkHelperCard">
-          <header class="cm-card-head">Hinge/Style Marker</header>
-          <p class="cm-card-sub">
-            Enter the door width and get hinge spacing.
-          </p>
-
-          <div class="chalk-width-grid">
-            <div class="chalk-field">
-              <label for="chalkFeet">Feet</label>
-              <input id="chalkFeet" type="number" inputmode="numeric" min="0" step="1" placeholder="16" />
-            </div>
-            <div class="chalk-field">
-              <label for="chalkInches">Inches</label>
-              <input id="chalkInches" type="number" inputmode="numeric" min="0" max="11" step="1" placeholder="0" />
-            </div>
-          </div>
-
-          <button id="chalkCalcBtn" class="cm-tile chalk-calc-btn" type="button">
-            Calculate marks
-          </button>
-
-          <p id="chalkModeStatus" class="chalk-mode-status" aria-live="polite"></p>
-          <div id="chalkResults" class="chalk-results" aria-live="polite">
-            <p class="chalk-results-empty">Enter a door width to see marks.</p>
-          </div>
-        </section>
-
-        <!-- Slide 4: Segment Calculator -->
+    <div class="cm-body">
+      <section id="cmPanelSegment" class="cm-panel" role="tabpanel" aria-labelledby="cmTabSegment" aria-hidden="false">
         <section class="cm-card" id="segmentTapeCard">
-          <header class="cm-card-head">Segment Calculator</header>
-          <p class="cm-card-sub">Break spans into equal pieces with a live tape preview.</p>
+                  <header class="cm-card-head">Segment Calculator</header>
+                  <p class="cm-card-sub">Break spans into equal pieces with a live tape preview.</p>
 
-          <div class="segment-wrap" aria-label="Segment calculator">
-            <div class="tape-wrapper" aria-label="Interactive tape measure">
-              <div class="tape-head">
-                <button class="tape-btn" id="prevMark" aria-label="Previous mark" title="Click: previous ƒ?› Long-press: first">ƒ-?</button>
-                <div class="spacer"></div>
-                <div class="label pill" aria-live="polite"> <span id="markIndex">ƒ?"</span> of <span id="markCount">0</span> &nbsp;Aú&nbsp;&nbsp;Aú&nbsp;&nbsp;Aú&nbsp;<span id="markFrac">ƒ?"</span> <small>"</small> </div>
-                <div class="spacer"></div>
-                <button class="tape-btn" id="nextMark" aria-label="Next mark" title="Click: next ƒ?› Long-press: last">ƒ-</button>
-              </div>
-              <div id="tapeContainer" role="img" aria-label="Ruler with 1/16-inch ticks"></div>
-            </div>
-            <div class="tab-container">
-              <div id="equalTab" class="tab active" tabindex="0" role="button">Equal</div>
-              <div id="nearTab" class="tab" tabindex="0" role="button">Near</div>
-            </div>
-            <form class="input-container">
-              <div class="length">
-                <label for="length">Length:</label>
-                <br>
-                <input type="text" id="length">
-              </div>
-              <div class="burn">
-                <label for="endDistance">End allowance:</label>
-                <br>
-                <input type="text" id="endDistance">
-              </div>
-              <div class="segmentType">
-                <label id="dynamicLabel" for="valueUsed">Segments:</label>
-                <br>
-                <input type="text" id="valueUsed">
-              </div>
-            </form>
-            <div class="resultsBG">
-              <p id="segmentResult" role="text" aria-live="assertive" aria-label="Segment Length Result"></p>
-              <p id="marksResult" role="text" aria-live="assertive" aria-label="Segment Marks (scrollable list)"></p>
-            </div>
-            <div class="readme-container">
-              <button id="showModalBtn" type="button">Instructions</button>
-              <div id="instructionsModal" class="modal">
-                <div class="modal-content"> Tap "Equal" for equal segments or "Near" for segments close to a target size. <br>
-                  <br>
-                  Fill the "Length" field with the total length of your material. <br>
-                  <br>
-                  Enter the distance you will leave at each end in the "End allowance" field. <br>
-                  <br>
-                  In the last field, enter the number of segments or the approximate size of each segment, depending on the chosen mode. <br>
-                  <br>
-                  <a href="index.html">Tape Measure Calculator</a> <br>
-                  <br>
-                  Tip: Swipe left or right instead of using the ƒ-? ƒ- buttons to step through the marks. <br>
-                  Long-press ƒ-? to jump to the first mark; long-press ƒ- to jump to the last. <br>
-                  <br>
-                  <span class="close-btn" id="closeModalBtn" tabindex="0">Close</span> </div>
-              </div>
-            </div>
+                  <div class="segment-wrap" aria-label="Segment calculator">
+                    <div class="tape-wrapper" aria-label="Interactive tape measure">
+                      <div class="tape-head">
+                        <button class="tape-btn" id="prevMark" aria-label="Previous mark" title="Click: previous ƒ?› Long-press: first">ƒ-?</button>
+                        <div class="spacer"></div>
+                        <div class="label pill" aria-live="polite"> <span id="markIndex">ƒ?"</span> of <span id="markCount">0</span> &nbsp;Aú&nbsp;&nbsp;Aú&nbsp;&nbsp;Aú&nbsp;<span id="markFrac">ƒ?"</span> <small>"</small> </div>
+                        <div class="spacer"></div>
+                        <button class="tape-btn" id="nextMark" aria-label="Next mark" title="Click: next ƒ?› Long-press: last">ƒ-</button>
+                      </div>
+                      <div id="tapeContainer" role="img" aria-label="Ruler with 1/16-inch ticks"></div>
           </div>
-        </section>
+                    <div class="tab-container">
+                      <div id="equalTab" class="tab active" tabindex="0" role="button">Equal</div>
+                      <div id="nearTab" class="tab" tabindex="0" role="button">Near</div>
+          </div>
+                    <form class="input-container">
+                      <div class="length">
+                        <label for="length">Length:</label>
+                        <br>
+                        <input type="text" id="length">
+                      </div>
+                      <div class="burn">
+                        <label for="endDistance">End allowance:</label>
+                        <br>
+                        <input type="text" id="endDistance">
+                      </div>
+                      <div class="segmentType">
+                        <label id="dynamicLabel" for="valueUsed">Segments:</label>
+                        <br>
+                        <input type="text" id="valueUsed">
+                      </div>
+                    </form>
+                    <div class="resultsBG">
+                      <p id="segmentResult" role="text" aria-live="assertive" aria-label="Segment Length Result"></p>
+                      <p id="marksResult" role="text" aria-live="assertive" aria-label="Segment Marks (scrollable list)"></p>
+                    </div>
+                    <div class="readme-container">
+                      <button id="showModalBtn" type="button">Instructions</button>
+                      <div id="instructionsModal" class="modal">
+                        <div class="modal-content"> Tap "Equal" for equal segments or "Near" for segments close to a target size. <br>
+                          <br>
+                          Fill the "Length" field with the total length of your material. <br>
+                          <br>
+                          Enter the distance you will leave at each end in the "End allowance" field. <br>
+                          <br>
+                          In the last field, enter the number of segments or the approximate size of each segment, depending on the chosen mode. <br>
+                          <br>
+                          <a href="index.html">Tape Measure Calculator</a> <br>
+                          <br>
+                          Tip: Swipe left or right instead of using the ƒ-? ƒ- buttons to step through the marks. <br>
+                          Long-press ƒ-? to jump to the first mark; long-press ƒ- to jump to the last. <br>
+                          <br>
+                          <span class="close-btn" id="closeModalBtn" tabindex="0">Close</span> </div>
+          </div>
+                    </div>
+          </div>
+                </section>
+      </section>
+
+      <section id="cmPanelHistory" class="cm-panel" role="tabpanel" aria-labelledby="cmTabHistory" aria-hidden="true" hidden>
+        <section class="cm-card" id="cmSavedEq">
+                  <header class="cm-card-head">Saved Equations</header>
+                  <p class="cm-card-sub">
+                    History and Results.
+                  </p>
+                  <div id="eqList" class="eq-list"></div>
+                  <p class="cm-note">
+                    Use the ⧉ button next to the history to add equations.
+                  </p>
+                </section>
+
+        <section class="cm-card" id="memCenter">
+                  <header class="cm-card-head">Memory Center</header>
+                  <p class="cm-card-sub">Save different mixes of M1–M5 as rows you can tap later.</p>
+
+                  <div class="cm-tiles" id="mcControls" style="margin-bottom:10px;">
+                    <button id="mcClear" class="cm-tile">Clear Slots</button>
+                    <button id="mcSaveCurrent" class="cm-tile">Save Slots</button>
+                    <span id="mcCounter" class="pill" aria-live="polite">0 saved</span>
+                  </div>
+
+                  <div class="mem-livegrid">
+                    <div class="mem-live-head">
+                      <span>Current User Preset</span>
+                      <span class="mem-live-note">Edit on the keypad</span>
+                    </div>
+                    <div class="mem-live-row" id="memLiveRow"></div>
+          </div>
 
 
-      </div>
+                  <div class="mem-sets">
+                    <div class="mem-sets-heading">
+                      <span>Saved sets</span>
+                    </div>
+                    <div class="mem-sets-list" id="memSetsList" role="list"></div>
+                    <p class="cm-note mem-sets-empty" id="memSetsEmpty">
+                      No saved sets yet. Tap “Save Slots” to capture the current five memory buttons.
+                    </p>
+                  </div>
+                </section>
 
-      <!-- Nav controls -->
-      <button id="cmPrev" class="cm-nav cm-prev" aria-label="Previous">‹</button>
-      <button id="cmNext" class="cm-nav cm-next" aria-label="Next">›</button>
-      <div id="cmDots" class="cm-dots" role="tablist" aria-label="Slides"></div>
+        <section class="cm-card" id="cmAbout">
+                  <header class="cm-card-head">Inch Calc &mdash; Tape Measure Calculator</header>
+                  <p class="cm-card-sub">Tape Measure Companion Calculator.</p>
+
+                  <p>Inch Calc keeps the tape-measure rhythm: punch 42 1/4 + 2.375 + 9/16 and it instantly shows the answer as a clean mixed fraction (snapped to 1/16″) plus the precise decimal.</p>
+                  <p>The live tape view keeps a red center line locked on your result, quick feet entry, and five customizable number buttons make it faster than scribbling on a scrap.</p>
+
+                  <div class="cm-tiles">
+                    <button id="savedEqTile" class="cm-tile" type="button">Saved Equations &mdash; bookmark full problems</button>
+                    <button id="memCenterTile" class="cm-tile" type="button">Memory Center &mdash; reusable M1–M5 sets</button>
+                    <button id="chalkHelperTile" class="cm-tile" type="button">Hinge/Style Marker &mdash; quick door spacing</button>
+                    <a href="segment_tape.html" class="cm-tile">Segment Calculator &mdash; break spans into equal pieces ↗</a>
+                  </div>
+
+                  <h3>What Inch Calc Does</h3>
+                  <ul class="cm-list">
+                    <li>Runs chain math in inches and feet with tape-calculator operators (+ − × ÷, C to clear).</li>
+                    <li>Shows history the way you typed it (mixed numbers, decimals, inch marks) so you never lose context.</li>
+                  </ul>
+
+                  <h3>Why it beats a phone calculator</h3>
+                  <ul class="cm-list">
+                    <li>Mixed fraction + decimal results, both copy-on-tap.</li>
+                    <li>Live tape visualization with a red pointer so you can pull the mark without guessing.</li>
+                    <li>Dedicated Ft button (tap to enter feet, hold to preview) and every common 1/16th tile a thumb away.</li>
+                  </ul>
+
+                  <h3>Every-day shop workflow</h3>
+                  <p>Tap a whole number, add a fraction tile, convert to feet mid-stream, recall M1–M5, then copy the answer straight to your cut list.</p>
+
+
+                  <button id="installBtn" class="cm-tile" style="display:none;">Install App</button>
+                </section>
+      </section>
+
+      <section id="cmPanelStyle" class="cm-panel" role="tabpanel" aria-labelledby="cmTabStyle" aria-hidden="true" hidden>
+        <section class="cm-card" id="chalkHelperCard">
+                  <header class="cm-card-head">Hinge/Style Marker</header>
+                  <p class="cm-card-sub">
+                    Enter the door width and get hinge spacing.
+                  </p>
+
+                  <div class="chalk-width-grid">
+                    <div class="chalk-field">
+                      <label for="chalkFeet">Feet</label>
+                      <input id="chalkFeet" type="number" inputmode="numeric" min="0" step="1" placeholder="16" />
+                    </div>
+                    <div class="chalk-field">
+                      <label for="chalkInches">Inches</label>
+                      <input id="chalkInches" type="number" inputmode="numeric" min="0" max="11" step="1" placeholder="0" />
+                    </div>
+          </div>
+
+                  <button id="chalkCalcBtn" class="cm-tile chalk-calc-btn" type="button">
+                    Calculate marks
+                  </button>
+
+                  <p id="chalkModeStatus" class="chalk-mode-status" aria-live="polite"></p>
+                  <div id="chalkResults" class="chalk-results" aria-live="polite">
+                    <p class="chalk-results-empty">Enter a door width to see marks.</p>
+                  </div>
+                </section>
+      </section>
     </div>
   </div>
 </div>

@@ -302,7 +302,7 @@
 /* Keep your existing #installBtn look consistent inside slides */
 #installBtn { background:#0ea5a5; color:#111; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; display:none }
 
-/* ===== Carousel Modal ===== */
+/* ===== Tools Modal (tabs) ===== */
 /* Backdrop / container */
 .cm-backdrop{
   position: fixed;
@@ -319,13 +319,13 @@
 
 .cm-modal{
   /* match app bezel aesthetics */
-  background: linear-gradient(#2a2f2f, darkslategray);
+  background: linear-gradient(#2a2f2f, #152222);
   border-radius: calc(var(--bezel-radius, 22px));
   box-shadow: 0 18px 40px rgba(0,0,0,.55), inset 0 2px 6px rgba(255,255,255,.03);
   color: #e9f5f5;
 
-  width: min(94vw, 760px);
-  max-height: min(84vh, 720px);
+  width: min(96vw, 780px);
+  height: min(90vh, 860px);
 
   display: flex;
   flex-direction: column;
@@ -361,42 +361,95 @@
 .cm-iconbtn:hover{ background: rgba(255,255,255,.07); }
 .cm-iconbtn:focus-visible{ outline: 2px solid #0ea5a5; outline-offset: 2px; }
 
-/* Viewport / track */
-.cm-viewport{
-  position: relative;
-  overflow: hidden;               /* clip the sliding track */
-  background: linear-gradient(180deg, #0f1a1a, #0d1616);
-  padding: 10px;
-}
-
-.cm-track{
+/* Tabs */
+.cm-tabs{
   display: flex;
-  gap: 0;                         /* IMPORTANT: zero real gap; we fake gutters on cards */
-  transform: translate3d(0,0,0);
-  transition: transform .35s ease;
-  will-change: transform;
+  gap: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(180deg, #0f1515, #101b1b);
+  border-bottom: 1px solid var(--bezel-divider, rgba(255,255,255,.08));
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-.cm-track.dragging{ transition: none; }
+.cm-tabs::-webkit-scrollbar{ display: none; }
 
-/* Slides (cards) */
+.cm-tab{
+  appearance: none;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color: #d7f0f0;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 13px;
+  letter-spacing: .02em;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1);
+  transition: transform .12s ease, filter .2s ease, box-shadow .2s ease;
+}
+.cm-tab:active{ transform: translateY(1px); }
+.cm-tab[aria-selected="true"]{
+  background: linear-gradient(180deg, #2ad3c9, #0ea5a5);
+  color: #062f2f;
+  border-color: rgba(14,165,165,.7);
+  box-shadow: 0 6px 16px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.4);
+}
+.cm-tab:focus-visible{ outline: 2px solid #0ea5a5; outline-offset: 2px; }
+
+/* Panel viewport */
+.cm-body{
+  position: relative;
+  flex: 1;
+  background: linear-gradient(180deg, #0f1919, #0b1515);
+  padding: 10px;
+  overflow: hidden;
+}
+.cm-body::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(420px circle at 100% 0%, rgba(14,165,165,.18), transparent 60%),
+    radial-gradient(380px circle at 0% 100%, rgba(255,215,0,.12), transparent 65%);
+  pointer-events: none;
+}
+
+.cm-panel{
+  position: relative;
+  height: 100%;
+  overflow: auto;
+  padding: 6px;
+  display: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.cm-panel[aria-hidden="false"]{
+  display: block;
+  animation: cmPanelIn .2s ease;
+}
+@keyframes cmPanelIn{
+  from{ opacity: 0; transform: translateY(6px); }
+  to{ opacity: 1; transform: translateY(0); }
+}
+
+/* Cards inside panels */
 .cm-card{
-  flex: 0 0 100%;
-  /* fake the 10px gutters without affecting slide math */
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  background-clip: padding-box;
-
-  background: #fffdee;
-  color: #222;
+  background: linear-gradient(180deg, #fff7d5, #f3e0a6);
+  color: #1a1f1f;
   border-radius: 14px;
-  box-shadow: 0 12px 40px rgba(0,0,0,.45), inset 0 0 0 1px rgba(0,0,0,.12);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.12);
+  border: 1px solid rgba(0,0,0,.12);
   padding: 16px 18px;
-
-  overflow: auto;                 /* content scrolls within card */
-  max-height: calc(min(84vh, 720px) - 60px); /* leave room for headbar/dots */
+  margin-bottom: 12px;
 }
+.cm-panel .cm-card:last-child{ margin-bottom: 0; }
 @media (prefers-color-scheme: dark){
-  .cm-card{ background:#0f1717; color:#dbeef0; }
+  .cm-card{
+    background: linear-gradient(180deg, #0f1a1a, #0c1414);
+    color: #dbeef0;
+    border-color: rgba(255,255,255,.08);
+    box-shadow: 0 12px 32px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.06);
+  }
 }
 
 /* Card typography */
@@ -412,63 +465,30 @@
 
 /* Tiles / links inside cards */
 .cm-tiles{
-  display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 10px;
+}
+@media (max-width: 420px){
+  .cm-tiles{ grid-template-columns: 1fr; }
 }
 .cm-tile{
   display: inline-flex; align-items: center; justify-content: center;
   padding: 10px 12px; border-radius: 10px; text-decoration: none; cursor: pointer;
-  background: var(--mem, lightskyblue); color: #083f3f; font-weight: 700; border: 0;
-  box-shadow: 0 2px 4px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.12);
+  background: linear-gradient(180deg, #9fe7e2, #66cfc8);
+  color: #083f3f; font-weight: 700; border: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.4);
+  transition: filter .2s ease, transform .12s ease;
 }
 .cm-tile:hover{ filter: brightness(1.05); }
+.cm-tile:active{ transform: translateY(1px); }
+.cm-tile:focus-visible{ outline: 2px solid #0ea5a5; outline-offset: 2px; }
 
 /* Simple two-column grid in a card */
 .cm-grid2{ display: grid; gap: 12px; grid-template-columns: 1fr; }
 @media (min-width: 640px){
   .cm-grid2{ grid-template-columns: 1fr 1fr; }
-}
-
-/* Prev/Next controls */
-.cm-nav{
-  position: absolute;
-  top: 50%; transform: translateY(-50%);
-  width: 36px; height: 42px;
-  border-radius: 10px; border: 0; cursor: pointer;
-  background: rgba(255,255,255,.14);
-  color: #fff; font-weight: 800; font-size: 22px;
-}
-.cm-prev{ left: 12px; }
-.cm-next{ right: 12px; }
-.cm-nav:hover{ background: rgba(255,255,255,.22); }
-.cm-nav:disabled{ opacity: .35; cursor: default; }
-.cm-nav:focus-visible{ outline: 2px solid #0ea5a5; outline-offset: 2px; }
-
-/* Dots */
-.cm-dots{
-  display: flex; gap: 8px; justify-content: center; align-items: center;
-  padding: 10px 0 8px 0;
-  border-top: 1px solid var(--bezel-divider, rgba(255,255,255,.08));
-  background: linear-gradient(#0f1515, #121b1b);
-}
-.cm-dot{
-  width: 8px; height: 8px; border-radius: 999px; border: 0; cursor: pointer;
-  background: rgba(255,255,255,.35);
-}
-.cm-dot[aria-selected="true"]{ background: #0ea5a5; }
-.cm-dot:focus-visible{ outline: 2px solid #0ea5a5; outline-offset: 2px; }
-
-/* Memory preview grid (slide 3) */
-.cm-memgrid{ display: grid; gap: 8px; grid-template-columns: repeat(2, 1fr); }
-.cm-memcell{
-  background: #111; color: #d7f0f0;
-  border-radius: 10px; padding: 10px 12px;
-  display: flex; align-items: center; justify-content: space-between;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
-}
-.cm-memcell .k{ opacity: .7; }
-.cm-memcell .v{ font-weight: 700; }
-#cmMemPreview{
-  margin-top:10px;
 }
 
 .eq-list{
@@ -574,8 +594,8 @@
 	  
 /* Motion preferences */
 @media (prefers-reduced-motion: reduce){
-  .cm-track{ transition: none !important; }
-  .cm-nav, .cm-iconbtn, .cm-tile{ transition: none !important; }
+  .cm-panel{ animation: none !important; }
+  .cm-tab, .cm-iconbtn, .cm-tile{ transition: none !important; }
 }
 	  
 	 .cm-groupgrid{

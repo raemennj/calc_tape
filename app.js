@@ -2067,11 +2067,8 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
 
     if (tileBtn){
       tileBtn.addEventListener('click', () => {
-        if (typeof window._cmOpen === 'function') window._cmOpen();
-        if (typeof window._cmIndexOf === 'function' && typeof window._cmGoTo === 'function' && card){
-          const idx = window._cmIndexOf(card);
-          if (idx >= 0) window._cmGoTo(idx);
-        }
+        if (typeof window._cmOpen === 'function') window._cmOpen('cmPanelStyle');
+        if (typeof window._cmScrollTo === 'function') window._cmScrollTo('chalkHelperCard');
       });
     }
 
@@ -2568,65 +2565,50 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
     };
   }
 
-  /* ===== Carousel Modal (cards only, not full-screen screenshot) ===== */
-(function carouselModal(){
+    /* ===== Tools Modal (tabs) ===== */
+(function toolsModal(){
   const backdrop = document.getElementById('cmBackdrop');
-  const track = document.getElementById('cmTrack');
-  const dotsWrap = document.getElementById('cmDots');
-  const prevBtn = document.getElementById('cmPrev');
-  const nextBtn = document.getElementById('cmNext');
+  if (!backdrop) return;
   const closeBtn = document.getElementById('cmClose');
   const openBtn  = document.getElementById('menuBtn');
-  const memPreview = document.getElementById('cmMemPreview');
-
-  const slideCount = track ? track.children.length : 0;
-  let idx = 0;
+  const tabs = Array.from(backdrop.querySelectorAll('.cm-tab'));
+  const panels = Array.from(backdrop.querySelectorAll('.cm-panel'));
+  const defaultPanelId = tabs[0]?.getAttribute('aria-controls') || panels[0]?.id;
+  let activePanelId = defaultPanelId;
   let lastFocus = null;
 
-  // Build dots
-  function buildDots(){
-    if (!dotsWrap) return;
-    dotsWrap.innerHTML = '';
-    for (let i=0;i<slideCount;i++){
-      const b = document.createElement('button');
-      b.className = 'cm-dot';
-      b.setAttribute('role','tab');
-      b.setAttribute('aria-label', `Slide ${i+1}`);
-      b.addEventListener('click', ()=> goTo(i));
-      dotsWrap.appendChild(b);
-    }
+  function setActive(panelId, options = {}){
+    if (!panelId) return;
+    activePanelId = panelId;
+    panels.forEach(panel => {
+      const active = panel.id === panelId;
+      panel.hidden = !active;
+      panel.setAttribute('aria-hidden', active ? 'false' : 'true');
+      if (active && options.resetScroll) panel.scrollTop = 0;
+    });
+    tabs.forEach(tab => {
+      const active = tab.getAttribute('aria-controls') === panelId;
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      tab.classList.toggle('is-active', active);
+      tab.tabIndex = active ? 0 : -1;
+    });
   }
 
-  function syncUI(){
-    // Move the track
-    track.style.transform = `translateX(${(-idx*100)}%)`;
-    // Dots
-    [...dotsWrap.children].forEach((d,i)=> d.setAttribute('aria-selected', i===idx ? 'true' : 'false'));
-    // Prev/Next disabled?
-    prevBtn.disabled = (idx===0);
-    nextBtn.disabled = (idx===slideCount-1);
+  function scrollToId(id){
+    const el = document.getElementById(id);
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
-  function goTo(n){
-    idx = Math.max(0, Math.min(slideCount-1, n));
-    syncUI();
-  }
-  const next = () => goTo(idx+1);
-  const prev = () => goTo(idx-1);
-
-  // Open/close
-  function open(){
-    if (!backdrop) return;
+  function open(panelId){
     lastFocus = document.activeElement;
     backdrop.setAttribute('aria-hidden','false');
-    renderMemoryPreview();
-    renderSavedEq();
-    buildDots();
-    syncUI();
-    // focus close for accessibility
-    setTimeout(()=> closeBtn?.focus(), 0);
-    // block body touch scroll while open except inside card
     document.body.style.overscrollBehavior = 'contain';
+    renderSavedEq();
+    setActive(panelId || activePanelId || defaultPanelId);
+    setTimeout(()=> closeBtn?.focus(), 0);
   }
   function close(){
     backdrop.setAttribute('aria-hidden','true');
@@ -2634,88 +2616,37 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
     lastFocus?.focus?.();
   }
 
-  // Hook existing menu button
-  openBtn?.addEventListener('click', open);
+  tabs.forEach((tab, idx) => {
+    tab.addEventListener('click', () => {
+      setActive(tab.getAttribute('aria-controls'), { resetScroll: true });
+    });
+    tab.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const dir = e.key === 'ArrowRight' ? 1 : -1;
+      const nextIdx = (idx + dir + tabs.length) % tabs.length;
+      const nextTab = tabs[nextIdx];
+      setActive(nextTab.getAttribute('aria-controls'), { resetScroll: true });
+      nextTab.focus();
+    });
+  });
+
+  openBtn?.addEventListener('click', () => open(defaultPanelId));
   closeBtn?.addEventListener('click', close);
-  backdrop?.addEventListener('click', (e)=>{ if (e.target === backdrop) close(); });
+  backdrop.addEventListener('click', (e)=>{ if (e.target === backdrop) close(); });
   document.addEventListener('keydown', (e)=>{
     if (backdrop.getAttribute('aria-hidden') === 'true') return;
     if (e.key === 'Escape') close();
-    if (e.key === 'ArrowRight') next();
-    if (e.key === 'ArrowLeft') prev();
   });
 
-  // Swipe (track moves horizontally, cards scroll vertically)
-  (function enableSwipe(){
-    const viewport = backdrop?.querySelector('.cm-viewport');
-    if (!viewport || !track) return;
+  setActive(defaultPanelId);
 
-    let width = 1;
-    let dragging = false;
-    const shouldIgnoreDrag = (target) => target?.closest?.('#memSetsList');
-
-    attachDirectionLockedGestures(viewport, {
-      lockThreshold: 10,
-      directionBias: 4,
-      stopHorizontalPropagation: true,
-      shouldStart(evt){
-        return !shouldIgnoreDrag(evt.target);
-      },
-      onStart(){
-        width = viewport.clientWidth || 1;
-        dragging = false;
-        track.classList.remove('dragging');
-      },
-      onDirectionLocked(dir){
-        if (dir === 'horizontal'){
-          dragging = true;
-          track.classList.add('dragging');
-        } else {
-          dragging = false;
-          track.classList.remove('dragging');
-        }
-      },
-      onHorizontalMove(_, { dx }){
-        if (!dragging) return;
-        const pct = (dx / width) * 100;
-        track.style.transform = `translateX(${(-idx*100 + pct)}%)`;
-      },
-      onEnd(_, { direction, dx }){
-        if (!dragging || direction !== 'horizontal'){
-          track.classList.remove('dragging');
-          dragging = false;
-          return;
-        }
-        dragging = false;
-        track.classList.remove('dragging');
-        const threshold = Math.max(60, width * 0.18); // pixels
-        if (dx > threshold) prev();
-        else if (dx < -threshold) next();
-        else syncUI(); // snap back
-      }
-    });
-  })();
-
-  // Dynamic memory preview (reads your existing memorySlots)
-  function renderMemoryPreview(){
-    if (!memPreview) return;
-    const cells = [];
-    for (let i=0;i<MEMORY_SLOT_COUNT;i++){
-      const v = memorySlots[i];
-      const display = (v==null) ? '—' : formatResultInch(v).fraction.replace('″','');
-      cells.push(`<div class="cm-memcell"><span class="k">M${i+1}</span><span class="v">${display}</span></div>`);
-    }
-    memPreview.innerHTML = cells.join('');
-  }
-
-  // Expose a tiny API if you want to deep-link a slide later:
-  window._cmGoTo = goTo; // e.g., _cmGoTo(3)
-	  window._cmOpen = open;
-  window._cmIndexOf = (el) => Array.from(track.children).indexOf(el);
+  window._cmOpen = open;
   window._cmClose = close;
-														  
-															  
+  window._cmSelectPanel = (panelId, options = {}) => setActive(panelId, options);
+  window._cmScrollTo = scrollToId;
 })();
+
 
 
   /* ====== REPEAT BUTTON ====== */
@@ -2899,42 +2830,26 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
       snapshotCurrentEquation();
     });
   }
-
   function openSavedEqCard(){
-    const eqCard = document.getElementById('cmSavedEq');
     if (typeof window._cmOpen === 'function'){
-      window._cmOpen();
+      window._cmOpen('cmPanelHistory');
       renderSavedEq();
-      if (typeof window._cmIndexOf === 'function' && typeof window._cmGoTo === 'function' && eqCard){
-        const idx = window._cmIndexOf(eqCard);
-        if (idx >= 0) window._cmGoTo(idx);
-      }
+      if (typeof window._cmScrollTo === 'function') window._cmScrollTo('cmSavedEq');
     }
   }
-
   function openMemCenterCard(){
-    const memCard = document.getElementById('memCenter');
     if (typeof window._cmOpen === 'function'){
-      window._cmOpen();
-      if (typeof window._cmIndexOf === 'function' && typeof window._cmGoTo === 'function' && memCard){
-        const idx = window._cmIndexOf(memCard);
-        if (idx >= 0) window._cmGoTo(idx);
-      }
+      window._cmOpen('cmPanelHistory');
+      if (typeof window._cmScrollTo === 'function') window._cmScrollTo('memCenter');
     }
   }
-
   function openSegmentTapeCard(){
-    const segCard = document.getElementById('segmentTapeCard');
     if (typeof window._cmOpen === 'function'){
-      window._cmOpen();
-      if (typeof window._cmIndexOf === 'function' && typeof window._cmGoTo === 'function' && segCard){
-        const idx = window._cmIndexOf(segCard);
-        if (idx >= 0) window._cmGoTo(idx);
-      }
+      window._cmOpen('cmPanelSegment');
+      if (typeof window._cmScrollTo === 'function') window._cmScrollTo('segmentTapeCard');
     }
     if (typeof window._segmentTapeRefresh === 'function') window._segmentTapeRefresh();
   }
-
   document.getElementById('eqClearBtn')?.addEventListener('click', clearSavedEq);
   document.getElementById('savedEqTile')?.addEventListener('click', openSavedEqCard);
   document.getElementById('memCenterTile')?.addEventListener('click', openMemCenterCard);
