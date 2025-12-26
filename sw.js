@@ -1,19 +1,31 @@
 // sw.js  — place this file next to your HTML (e.g., /projects/sw.js)
 const CACHE_PREFIX = 'inch-calc';
-const VERSION = '2025-12-24-5';            // bump this when you change assets
+const VERSION = '2025-12-25-6';            // bump this when you change assets
 const CACHE_NAME = `${CACHE_PREFIX}-${VERSION}`;
 
 const ASSETS = [
-  './',                                   // folder index (helps GH Pages)
+  './',
   './index.html',
   './styles.css',
-  './app.js',             // <-- change if your entry html has a different name
+  './app.js',
   './manifest.webmanifest',
   './sw.js',
-  './calcicon-192.png',
-  './calcicon-512.png',
-  './maskable-512.png',
-  './apple-touch-icon.png'
+  './icons/calcicon16.png',
+  './icons/calcicon32.png',
+  './icons/calcicon48.png',
+  './icons/calcicon64.png',
+  './icons/calcicon72.png',
+  './icons/calcicon96.png',
+  './icons/calcicon128.png',
+  './icons/calcicon144.png',
+  './icons/calcicon152.png',
+  './icons/calcicon180.png',
+  './icons/calcicon192.png',
+  './icons/calcicon256.png',
+  './icons/calcicon384.png',
+  './icons/calcicon512.png',
+  './icons/maskable-512.png',
+  './icons/apple-touch-icon.png'
 ];
 
 // -------- Install: precache app shell --------
