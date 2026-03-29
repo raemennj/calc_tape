@@ -59,6 +59,7 @@
     border-radius:calc(var(--bezel-radius) + 6px);
     padding:11px;
     box-shadow: 0 18px 40px rgba(0,0,0,.55), inset 0 2px 6px rgba(255,255,255,.03);
+    max-height: calc(var(--tape-min) + var(--results-min) + 34px);
   }
   .bezel__rim{
     background:var(--bezel-inner); border-radius:var(--bezel-rim-radius); padding:var(--bezel-pad);
