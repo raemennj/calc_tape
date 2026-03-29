@@ -21,7 +21,7 @@
   function snapTapeValue(value){ return Math.round(value * 16) / 16; }
 
   /* ====== Uniform tile/gap solver ====== */
-  const MIN_TAP = 44;
+  const MIN_TAP = 28;
   const MIN_GAP = 6, MAX_GAP = 12;
 
   function computeTile(){
