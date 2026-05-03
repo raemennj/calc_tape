@@ -2061,6 +2061,7 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
     const chalkFeet = document.getElementById('chalkFeet');
     const chalkInches = document.getElementById('chalkInches');
     const calcBtn = document.getElementById('chalkCalcBtn');
+    const chalkPad = card?.querySelector('.chalk-keypad');
     const resultsEl = document.getElementById('chalkResults');
     const modeLabelEl = document.getElementById('chalkModeStatus');
     const tileBtn = document.getElementById('chalkHelperTile');
@@ -2106,21 +2107,32 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
       }
     }
 
+    const parseMixed = (raw) => {
+      const s = String(raw || '').trim();
+      if (!s) return 0;
+      if (s.includes(' ')) {
+        const [w, f] = s.split(' ');
+        const [n, d] = (f || '').split('/').map(Number);
+        return (Number(w) || 0) + ((d && Number.isFinite(n)) ? n / d : 0);
+      }
+      if (s.includes('/')) {
+        const [n, d] = s.split('/').map(Number);
+        return (d && Number.isFinite(n)) ? n / d : NaN;
+      }
+      return Number(s);
+    };
+
     function calculateMarks(){
       const feetVal = Number(chalkFeet?.value);
-      const inchVal = Number(chalkInches?.value);
+      const inchVal = parseMixed(chalkInches?.value);
       let safeFeet = Number.isFinite(feetVal) ? feetVal : 0;
       if (safeFeet < 0) safeFeet = 0;
       let safeInches = Number.isFinite(inchVal) ? inchVal : 0;
-      safeInches = clamp(Math.round(safeInches), 0, 11);
+      safeInches = clamp(safeInches, 0, 11.9375);
 
       if (chalkFeet && Number.isFinite(feetVal) && feetVal < 0){
         chalkFeet.value = String(safeFeet);
       }
-      if (chalkInches && chalkInches.value !== ''){
-        chalkInches.value = String(safeInches);
-      }
-
       const totalInches = safeFeet * 12 + safeInches;
       if (!totalInches){
         lastStepInches = null;
@@ -2155,6 +2167,39 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
         }
       });
     });
+    if (chalkPad && chalkFeet && chalkInches){
+      let activeInput = chalkInches;
+      const setActive = (el) => {
+        activeInput = el;
+        [chalkFeet, chalkInches].forEach(inp => inp.classList.toggle('chalk-active', inp === activeInput));
+      };
+      const setVal = (v) => { activeInput.value = v; calculateMarks(); };
+      const append = (token) => {
+        const cur = (activeInput.value || '').trim();
+        if (token === '.' && cur.includes('/')) return;
+        setVal(cur + token);
+      };
+      const addFrac = (frac) => {
+        if (activeInput !== chalkInches) setActive(chalkInches);
+        const cur = (chalkInches.value || '').trim();
+        if (!cur) return setVal(frac);
+        if (cur.includes('/')) return;
+        setVal(`${cur} ${frac}`);
+      };
+      [chalkFeet, chalkInches].forEach(inp => {
+        inp.addEventListener('focus', () => setActive(inp));
+        inp.addEventListener('click', () => setActive(inp));
+      });
+      chalkPad.addEventListener('click', (e) => {
+        const key = e.target.closest('[data-chalk-key]');
+        const frac = e.target.closest('[data-chalk-frac]');
+        const action = e.target.closest('[data-chalk-action]');
+        if (key) append(key.getAttribute('data-chalk-key') || '');
+        if (frac) addFrac(frac.getAttribute('data-chalk-frac') || '');
+        if (action?.getAttribute('data-chalk-action') === 'clear') setVal('');
+      });
+      setActive(chalkInches);
+    }
 
     updateModeLabel();
     renderMessage('Enter a door width to see chalk marks.');
@@ -2461,7 +2506,6 @@ document.querySelectorAll('.btn.mem').forEach(btn=>{
     document.getElementById('length').addEventListener('input', debounceCalculate);
     document.getElementById('endDistance').addEventListener('input', debounceCalculate);
     document.getElementById('valueUsed').addEventListener('input', debounceCalculate);
-
     // tape nav buttons: click vs long-press
     const prevBtn = document.getElementById('prevMark');
     const nextBtn = document.getElementById('nextMark');

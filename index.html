@@ -312,9 +312,28 @@
                     </div>
                     <div class="chalk-field">
                       <label for="chalkInches">Inches</label>
-                      <input id="chalkInches" type="number" inputmode="numeric" min="0" max="11" step="1" placeholder="0" />
+                      <input id="chalkInches" type="text" inputmode="decimal" placeholder="0" />
                     </div>
           </div>
+                  <div class="chalk-keypad" aria-label="Style divider keypad">
+                    <div class="chalk-keypad-grid">
+                      <button type="button" class="chalk-pad-key" data-chalk-key="7">7</button>
+                      <button type="button" class="chalk-pad-key" data-chalk-key="8">8</button>
+                      <button type="button" class="chalk-pad-key" data-chalk-key="9">9</button>
+                      <button type="button" class="chalk-pad-key" data-chalk-key="4">4</button>
+                      <button type="button" class="chalk-pad-key" data-chalk-key="5">5</button>
+                      <button type="button" class="chalk-pad-key" data-chalk-key="6">6</button>
+                      <button type="button" class="chalk-pad-key" data-chalk-key="1">1</button>
+                      <button type="button" class="chalk-pad-key" data-chalk-key="2">2</button>
+                      <button type="button" class="chalk-pad-key" data-chalk-key="3">3</button>
+                      <button type="button" class="chalk-pad-key" data-chalk-key=".">.</button>
+                      <button type="button" class="chalk-pad-key" data-chalk-key="0">0</button>
+                      <button type="button" class="chalk-pad-key chalk-clear" data-chalk-action="clear">Clear</button>
+                    </div>
+                    <div class="chalk-fraction-grid">
+                      <button type="button" class="chalk-pad-key" data-chalk-frac="1/16">1/16</button><button type="button" class="chalk-pad-key" data-chalk-frac="1/8">1/8</button><button type="button" class="chalk-pad-key" data-chalk-frac="3/16">3/16</button><button type="button" class="chalk-pad-key" data-chalk-frac="1/4">1/4</button><button type="button" class="chalk-pad-key" data-chalk-frac="5/16">5/16</button><button type="button" class="chalk-pad-key" data-chalk-frac="3/8">3/8</button><button type="button" class="chalk-pad-key" data-chalk-frac="7/16">7/16</button><button type="button" class="chalk-pad-key" data-chalk-frac="1/2">1/2</button><button type="button" class="chalk-pad-key" data-chalk-frac="9/16">9/16</button><button type="button" class="chalk-pad-key" data-chalk-frac="5/8">5/8</button><button type="button" class="chalk-pad-key" data-chalk-frac="11/16">11/16</button><button type="button" class="chalk-pad-key" data-chalk-frac="3/4">3/4</button><button type="button" class="chalk-pad-key" data-chalk-frac="13/16">13/16</button><button type="button" class="chalk-pad-key" data-chalk-frac="7/8">7/8</button><button type="button" class="chalk-pad-key" data-chalk-frac="15/16">15/16</button>
+                    </div>
+                  </div>
 
                   <button id="chalkCalcBtn" class="cm-tile chalk-calc-btn" type="button">
                     Calculate marks
